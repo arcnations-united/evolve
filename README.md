@@ -1,8 +1,8 @@
-# gtkthememanager
+# Evolve
 
-The powerful and modern alternative to Gnome Tweaks
+The powerful and modern alternative to Gnome Tweaks with GTK-4.0 support and some cool features
 
 ## Getting Started
 
-For fetching colours, I tried to decode GTK theme in use from the css file.
-So yes! You need not configure this app to respect GTK themes!
+Download the release build from here -
+https://arcnations.wixsite.com/nex-apps/post/evolve-a-brand-new-gnome-theme-manager
