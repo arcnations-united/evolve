@@ -17,8 +17,8 @@ class _IconPickerState extends State<IconPicker> {
   double opacity =0.0;
   @override
   void initState() {
-   if(ThemeDt.IconName=="") getIcoTheme();
-   if(ThemeDt.IconName!="")opacity=1.0;
+    if(ThemeDt.IconName=="") getIcoTheme();
+    if(ThemeDt.IconName!="")opacity=1.0;
     super.initState();
   }
   getIcoTheme()async{
@@ -47,10 +47,10 @@ class _IconPickerState extends State<IconPicker> {
                 GetButtons(onTap: ()async{
                   Directory ico = Directory("${SystemInfo.home}/.icons");
                   if(!(await ico.exists())){
-                   await ico.create();
+                    await ico.create();
                   }
-                    ThemeDt.IconName="";
-                    getIcoTheme();
+                  ThemeDt.IconName="";
+                  getIcoTheme();
                 }, text: "Create icon folder", light: true,)
               ],
             ),
@@ -74,7 +74,7 @@ class _IconPickerState extends State<IconPicker> {
                 WidsManager().getText("No icons found! Unpack icons into\n${SystemInfo.home}/.icons", size: 10, center: true),
                 const SizedBox(height: 10,),
                 GetButtons(onTap: ()async{
-                 getIcoTheme();
+                  getIcoTheme();
                 }, text: "Refresh", light: true,)
               ],
             ),
@@ -91,16 +91,16 @@ class _IconPickerState extends State<IconPicker> {
           const SizedBox(
             height: 10,
           ),
-          WidsManager().getText("Icons"),
+          WidsManager().getText("Icons", fontWeight: ThemeDt.boldText),
           const SizedBox(
             height: 10,
           ),
           Expanded(
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: (MediaQuery.sizeOf(context).width/200).floor(),
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10
+                  crossAxisCount: (MediaQuery.sizeOf(context).width/200).floor(),
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10
               ),
               itemCount: ThemeManager.iconPathList.length,
               itemBuilder: (BuildContext context, int index) {

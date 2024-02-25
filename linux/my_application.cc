@@ -47,8 +47,8 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "Evolve");
   }
 
-  gtk_window_set_default_size(window, 800, 600);
-  gtk_widget_realize(GTK_WIDGET(window));
+  gtk_window_set_default_size(window, 900, 700);
+  gtk_widget_show(GTK_WIDGET(window));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
@@ -59,7 +59,11 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
+
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
+ // gtk_widget_show(GTK_WIDGET(window));
+  //gtk_widget_show(GTK_WIDGET(view));
 }
 
 // Implements GApplication::local_command_line.

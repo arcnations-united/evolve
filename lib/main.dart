@@ -1,24 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gtkthememanager/front_end/app_specific_settings.dart';
 import 'package:gtkthememanager/front_end/inital_page.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
-import 'package:window_manager/window_manager.dart';
+import 'back_end/app_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Must add this line.
-  await windowManager.ensureInitialized();
-  WindowOptions windowOptions = WindowOptions(
-    size: Size(800, 600),
-    center: true,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.normal,
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-
-  });
   runApp(const MyApp());
 }
 class MyApp extends StatefulWidget {
@@ -34,14 +21,17 @@ class _MyAppState extends State<MyApp> {
 
     });
   }
+  @override
   void initState() {
+    // TODO: implement initState
     SystemInfo().getHome();
     initiateTheme();
     super.initState();
   }
   initiateTheme()async{
-    ThemeDt().initiateFallbackTheme();
     await ThemeDt().setTheme();
+    await AppData().fetchDataFile();
+    AppSettingsToggle().updateAllParams();
     setState(() {
 
     });
@@ -49,8 +39,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      color: Colors.transparent,
-      home: CheckValidity(state: state,)
+        home: CheckValidity(state: state,)
     );
   }
 }

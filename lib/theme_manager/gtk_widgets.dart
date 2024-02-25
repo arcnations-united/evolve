@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:blurrycontainer/blurrycontainer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gtkthememanager/back_end/app_data.dart';
+import 'package:process_run/process_run.dart';
 import 'gtk_to_theme.dart';
 
 //Returns required widgets in style of the applied GTK Theme
@@ -14,71 +17,59 @@ class WidsManager{
     border ??= false;
     pad ??= 10;
     if(blur) {
-     return BlurryContainer(
-       borderRadius: BorderRadius.circular(10),
-
-       padding: EdgeInsets.zero,
-      blur: 15,
-      child: AnimatedContainer(
-      
+      return BlurryContainer(
         width: width,
         height: height,
-        padding: EdgeInsets.all(pad),
-        duration: ThemeDt.d,
-        curve: ThemeDt.c,
-        decoration: BoxDecoration(
-            border: border?Border.all(
-              width: 1.5,
-              color: ThemeDt.themeColors["fg"] ?? Colors.transparent,
-            ):null,
-            color: ThemeDt.themeColors["sltbg"]?.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(10)
-        ),
-        child: child,
-      ),
-    );
+        elevation: 20,
+        blur: 10,
+        borderRadius: const BorderRadius.all(
+            Radius.circular(10)),
+        color: ThemeDt.themeColors["sltbg"]!.withOpacity(0.16),
+        child: child
+      );
     }
     return AnimatedContainer(
 
       width: width,
       height: height,
       padding: EdgeInsets.all(pad),
-        duration: ThemeDt.d,
+      duration: ThemeDt.d,
       curve: ThemeDt.c,
       decoration: BoxDecoration(
-        border: border?Border.all(
-          width: 1.5,
-          color: ThemeDt.themeColors["fg"] ?? Colors.transparent,
-        ):null,
-        color: ThemeDt.themeColors["altbg"],
-        borderRadius: BorderRadius.circular(10)
+          border: border?Border.all(
+            width: 1.5,
+            color: ThemeDt.themeColors["fg"] ?? Colors.transparent,
+          ):null,
+          color: ThemeDt.themeColors["altbg"],
+          borderRadius: BorderRadius.circular(10)
       ),
       child: child,
     );
   }
-  Text getText(String s, {double? size,bool? center, bool? stylize, int? maxLines}){
+  Text getText(String s, {double? size,bool? center, bool? stylize, int? maxLines, String? color, FontWeight? fontWeight}){
     stylize ??= false;
     center ??= false;
-    size ??= 13;
+    size ??= AppData.DataFile["MAXSIZE"] == "TRUE" ? 15:13;
     return Text(s, textAlign:(center)? TextAlign.center:null,maxLines: maxLines, overflow: TextOverflow.fade, style:stylize==true?
     GoogleFonts.audiowide(
-      color: ThemeDt.themeColors["fg"], fontSize: size,
+      color: ThemeDt.themeColors[color ?? "fg"], fontSize: size,
 
     ):
-    GoogleFonts.montserrat(
+    GoogleFonts.lexendDeca(
 
-      color: ThemeDt.themeColors["fg"], fontSize: size,
-      fontWeight: size>15? FontWeight.w200 : FontWeight.w400,
+      color: ThemeDt.themeColors[color ?? "fg"], fontSize: size,
+      fontWeight: fontWeight ?? (size>15? FontWeight.w200 : FontWeight.w300),
 
     ),);
   }
-
   void showMessage({required String title, required String message,  IconData? icon, Widget? child, required context}) {
     icon ??= (title.toLowerCase()=="error")?Icons.error_rounded:(title.toLowerCase()=="warning")?Icons.warning_rounded:Icons.info_rounded;
     child ??= GetButtons(onTap: (){
       Navigator.pop(context);
     }, text: "Close",);
-    showDialog(barrierColor: Colors.transparent,context: context, builder: (BuildContext context) {
+    showDialog(
+
+      barrierColor: Colors.transparent,context: context,barrierDismissible: false, builder: (BuildContext context) {
       var wdth = MediaQuery.sizeOf(context).width;
       return  Center(
         child: WidsManager().getContainer(
@@ -118,13 +109,89 @@ class WidsManager{
 
     },);
   }
-}
+  Tooltip getTooltip({child, String? text, Widget? widget}){
 
+    return  Tooltip(
+
+
+      richMessage: WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: BlurryContainer(
+            elevation: 20,
+            blur: 10,
+            borderRadius: const BorderRadius.all(
+                Radius.circular(10)),
+            color: ThemeDt.themeColors["sltbg"]!.withOpacity(0.16),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              constraints:
+              const BoxConstraints(maxWidth: 250),
+              child: widget ?? WidsManager().getText(text ?? "Tap here"),
+            ),
+          )),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(
+            Radius.circular(5)),
+      ),
+      // margin: EdgeInsets.only(left: MediaQuery.sizeOf(context).width/(largeAlbum?2:1.5)),
+      child:child,
+    );
+  }
+  static String wallPath="";
+  Future<Widget> getWallpaperSample({String? wallPath}) async {
+    wallPath ??= (await Shell().run("""
+    gsettings get org.gnome.desktop.background picture-uri
+    """)).outText.replaceAll("file://", "").replaceAll("'", "");
+    WidsManager.wallPath=wallPath;
+    File wp= File(wallPath);
+    if(await wp.exists()==false){
+      return Container(
+        decoration:BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            colors: [
+              Colors.lightBlueAccent,
+              Colors.lightBlue,
+              Colors.blue[800]!,
+            ]
+          )
+        ),
+      );
+    }
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          children: [
+            Image.file  (wp,width: double.infinity, height: double.infinity,fit: BoxFit.cover,),
+            Stack(
+              children: [
+                Container(color: Colors.black, height: 25,),
+                Container(
+                  margin: const EdgeInsets.only(top: 10, left: 10),
+                  decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(100)
+                ), width: 25,
+                height: 8,),
+                Container(
+                  margin: const EdgeInsets.only(top: 10, left: 40),
+                  decoration: const BoxDecoration(
+                  color: Colors.grey,
+                  shape: BoxShape.circle,
+                ), width: 8,
+                height: 8,),
+              ],
+            )
+          ],
+        ));
+  }
+}
 class TabButton extends StatefulWidget {
   final String text;
   final int Tab;
   final Function() state;
-   const TabButton({required this.text, super.key, required this.Tab, required this.state,});
+  const TabButton({required this.text, super.key, required this.Tab, required this.state,});
 
   @override
   State<TabButton> createState() => _TabButtonState();
@@ -134,11 +201,11 @@ class _TabButtonState extends State<TabButton> {
 
   @override
   void initState() {
-    initiateTheme();
+    // TODO: implement initState
+   // initiateTheme();
     super.initState();
   }
   initiateTheme()async{
-    ThemeDt().initiateFallbackTheme();
     await ThemeDt().setTheme();
     setState(() {
 
@@ -147,51 +214,49 @@ class _TabButtonState extends State<TabButton> {
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.sizeOf(context).width/5;
-          return  MouseRegion(
-            onEnter: (dt){
-              setState(() {
-                hover = true;
-              });
-            },
-            onExit: (dt){
+    return  MouseRegion(
+      onEnter: (dt){
+        setState(() {
+          hover = true;
+        });
+      },
+      onExit: (dt){
 
-              setState(() {
-                hover = false;
-              });
-            },
-            child: GestureDetector(
-              onTap: (){
-                  WidsManager.activeTab=widget.Tab;
-                  widget.state();
-              },
-              child:  AnimatedContainer(
-                width: width,
-                decoration: BoxDecoration(
-                    color: ThemeDt.themeColors[widget.Tab==WidsManager.activeTab?"sltbg":(hover)?"altbg":"bg"],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      width: 2,
-                      color: ((widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null) ?? Colors.transparent,
-                    )
-                ),
-                duration: ThemeDt.d,
-                curve: ThemeDt.c,
-                padding: const EdgeInsets.all(10),
-                child: WidsManager().getText(widget.text,),
-              ),
-            ),
-          );
+        setState(() {
+          hover = false;
+        });
+      },
+      child: GestureDetector(
+        onTap: (){
+          WidsManager.activeTab=widget.Tab;
+          widget.state();
+        },
+        child:  AnimatedContainer(
+          width: width,
+          decoration: BoxDecoration(
+              color: ThemeDt.themeColors[widget.Tab==WidsManager.activeTab?"rowSltBG":(hover)?"altbg":"bg"],
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(width: 2, color: (((AppData.DataFile["HCONTRAST"] == "TRUE") ? (widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null : ThemeDt.themeColors["rowSltBG"]==ThemeDt.themeColors["bg"]?((widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null):null) ?? Colors.transparent)),
+          ),
+          duration: ThemeDt.d,
+          curve: ThemeDt.c,
+          padding: const EdgeInsets.all(10),
+          child: WidsManager().getText(widget.text,color: (widget.Tab==WidsManager.activeTab?"rowSltLabel":"fg"), fontWeight: widget.Tab==WidsManager.activeTab ? ThemeDt.boldText:FontWeight.w300),
+        ),
+      ),
+    );
   }
 }
 
+
 class GetButtons extends StatefulWidget {
-final Function() onTap;
-final  child;
+  final Function() onTap;
+  final  child;
   final String? text;
   final bool? light;
- final bool? ghost;
- final bool? moreResponsive;
- final double? ltVal;
+  final bool? ghost;
+  final bool? moreResponsive;
+  final double? ltVal;
   const GetButtons({this.ltVal, this.child, this.text, this.ghost,  super.key, required this.onTap, this.light, this.moreResponsive});
 
   @override
@@ -204,7 +269,14 @@ class _GetButtonsState extends State<GetButtons> {
   Timer? t;
   Timer? t1;
   @override
+  void initState() {
+    // TODO: implement initState
+
+    super.initState();
+  }
+  @override
   void dispose() {
+    // TODO: implement dispose
     t?.cancel();
     super.dispose();
   }
@@ -219,14 +291,14 @@ class _GetButtonsState extends State<GetButtons> {
         });
       },
       onExit: (dt){
-t?.cancel();
-t=Timer(const Duration(milliseconds: 200), () {
- if(context.mounted) {
-   setState(() {
-    hover = false;
-  });
- }
-});
+        t?.cancel();
+        t=Timer(const Duration(milliseconds: 200), () {
+          if(context.mounted) {
+            setState(() {
+              hover = false;
+            });
+          }
+        });
 
       },
       child: GestureDetector(
@@ -236,21 +308,21 @@ t=Timer(const Duration(milliseconds: 200), () {
           });
 
         },onTapUp: (dt){
-          widget.onTap();
-          t1?.cancel();
-          t1=Timer(const Duration(milliseconds: 200), () {
-           if(context.mounted) {
-             setState(() {
+        widget.onTap();
+        t1?.cancel();
+        t1=Timer(const Duration(milliseconds: 200), () {
+          if(context.mounted) {
+            setState(() {
               tap=false;
             });
-           }
-          });
+          }
+        });
 
 
 
-        },
+      },
         child:  AnimatedContainer(
-         // width: width,
+          // width: width,
           decoration: BoxDecoration(
               color: (widget.light ?? false)?
               HSLColor.fromColor(buttonCol!).withLightness(
@@ -284,14 +356,16 @@ class GetIcons extends StatefulWidget {
   State<GetIcons> createState() => _GetIconsState();
 }
 class _GetIconsState extends State<GetIcons> {
-bool corruptTheme = false;
+  bool corruptTheme = false;
   List svgPaths=["","","","","",""];
   @override
   void initState() {
+    // TODO: implement initState
     initateLocations();
     super.initState();
   }
   initateLocations()async{
+
     Directory Ico = Directory(widget.icoPackPath);
     svgPaths[0]=await checkFile("org.gnome.files.svg");
     if(svgPaths[0]=="NotFound") {
@@ -318,10 +392,10 @@ bool corruptTheme = false;
       svgPaths[5]=await checkFile("org.gnome.Music.svg");
     }
     int nots=0;
-for (var element in svgPaths) {
-  if(element=="NotFound")nots++;
-}
-if(nots>=3) corruptTheme=true;
+    for (var element in svgPaths) {
+      if(element=="NotFound")nots++;
+    }
+    if(nots>=3) corruptTheme=true;
     setState(() {
 
     });
@@ -338,7 +412,7 @@ if(nots>=3) corruptTheme=true;
     File f3 = File(fle3);
     File f4 = File(fle4);
     if(await f.exists()){
-    return fle;
+      return fle;
     }
     else if(await f1.exists()){
       return fle1;
@@ -361,7 +435,7 @@ if(nots>=3) corruptTheme=true;
   Widget build(BuildContext context) {
     wd =(MediaQuery.sizeOf(context).width+MediaQuery.sizeOf(context).height)/50;
     ht=wd;
-    
+
     return GetButtons(
       moreResponsive: true,
       ghost: ThemeDt.IconName==widget.icoPackPath.split("/").last,
@@ -369,23 +443,23 @@ if(nots>=3) corruptTheme=true;
       onTap: () {
         if(corruptTheme){
           WidsManager().showMessage(
-            context: context,
-            title : "Warning",
-            message : "The icon pack you are trying to apply may be corrupted. Some system icons may not show after applying.",
-            icon : Icons.warning_rounded,
-            child : Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GetButtons(light:true,onTap: (){
-                  Navigator.pop(context);
-                }, text: "Cancel",),
-                const SizedBox(width: 10,),
-                GetButtons(light:true,onTap: (){
-                  applyIcon();
-                  Navigator.pop(context);
-                }, text: "Apply",),
-              ],
-            )
+              context: context,
+              title : "Warning",
+              message : "The icon pack you are trying to apply may be corrupted. Some system icons may not show after applying.",
+              icon : Icons.warning_rounded,
+              child : Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GetButtons(light:true,onTap: (){
+                    Navigator.pop(context);
+                  }, text: "Cancel",),
+                  const SizedBox(width: 10,),
+                  GetButtons(light:true,onTap: (){
+                    applyIcon();
+                    Navigator.pop(context);
+                  }, text: "Apply",),
+                ],
+              )
           );
         }
         else{
@@ -397,25 +471,25 @@ if(nots>=3) corruptTheme=true;
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if(corruptTheme) WidsManager().getText("Icon-pack may be corrupt.", size: 15),
-        if(!corruptTheme)  Expanded(child: GridView.builder(
+          if(!corruptTheme)  Expanded(child: GridView.builder(
             itemCount: 6,
             gridDelegate:
             const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-              crossAxisSpacing: 5,
-              mainAxisSpacing: 5
+                crossAxisSpacing: 5,
+                mainAxisSpacing: 5
             ),
             itemBuilder: (BuildContext context, int index) {
               if(svgPaths[index]=="NotFound"){
                 return Icon(Icons.error, size: wd, color: ThemeDt.themeColors["fg"],);
               } else{
                 return AnimatedOpacity(
-                  duration: ThemeDt.d,
-                  opacity: svgPaths[index]==""?0.0:1.0,
+                    duration: ThemeDt.d,
+                    opacity: svgPaths[index]==""?0.0:1.0,
                     child: svgPaths[index]==""?Container():SvgPicture.file(
-                File(svgPaths[index]),width: MediaQuery.sizeOf(context).width/10,
-              ));
-            }
+                      File(svgPaths[index]),width: MediaQuery.sizeOf(context).width/10,
+                    ));
+              }
 
             },
           )),
@@ -450,12 +524,14 @@ class _GetTextBoxState extends State<GetTextBox> {
   late TextEditingController tx;
   @override
   void initState() {
+    // TODO: implement initState
     tx=TextEditingController();
     tx.text=widget.initText ?? "";
     super.initState();
   }
   @override
   void dispose() {
+    // TODO: implement dispose
     tx.dispose();
     super.dispose();
   }
@@ -463,41 +539,41 @@ class _GetTextBoxState extends State<GetTextBox> {
   @override
   Widget build(BuildContext context) {
     return WidsManager().getContainer(
-      border: tapped,
-      width: widget.width,
-      height: widget.height,
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              onChanged: (tx){
-                setState(() {
-                });
-              },
-              cursorColor: ThemeDt.themeColors["fg"],
-              controller: tx,
-              style: WidsManager().getText("s").style,
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                hintStyle: WidsManager().getText("s").style,
-                border: const OutlineInputBorder(
-                  borderSide: BorderSide.none,
-                  gapPadding: 0
-                )
+        border: tapped,
+        width: widget.width,
+        height: widget.height,
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                onChanged: (tx){
+                  setState(() {
+                  });
+                },
+                cursorColor: ThemeDt.themeColors["fg"],
+                controller: tx,
+                style: WidsManager().getText("s").style,
+                decoration: InputDecoration(
+                    hintText: widget.hintText,
+                    hintStyle: WidsManager().getText("s").style,
+                    border: const OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        gapPadding: 0
+                    )
+                ),
               ),
             ),
-          ),
-          if(tx.text!="")GetButtons(light: true,onTap: (){
-setState(() {
-  tx.text="";
-});
-          }, child: Icon(Icons.close_rounded, color: ThemeDt.themeColors["fg"],),),
-          const SizedBox(width: 10,),
-          if(tx.text!="")GetButtons(light: true,onTap: (){
-            widget.onDone(tx.text);
-          }, child: Icon(Icons.check_rounded, color: ThemeDt.themeColors["fg"],),)
-        ],
-      )
+            if(tx.text!="")GetButtons(light: true,onTap: (){
+              setState(() {
+                tx.text="";
+              });
+            }, child: Icon(Icons.close_rounded, color: ThemeDt.themeColors["fg"],),),
+            const SizedBox(width: 10,),
+            if(tx.text!="")GetButtons(light: true,onTap: (){
+              widget.onDone(tx.text);
+            }, child: Icon(Icons.check_rounded, color: ThemeDt.themeColors["fg"],),)
+          ],
+        )
     );
   }
 }

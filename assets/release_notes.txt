@@ -1,0 +1,103 @@
+RELEASE NOTES
+
+[V 1.2]  PUBLIC RELEASE
+
+Includes all the changes in version 1.1.x along with -
+
+New app settings tab to edit some app specific settings.
+
+"Install new themes/icons" page has been revamped.
+
+Changed app font to a more compact one.
+
+Added info for AT+ Themes.
+
+New tab to edit app specific settings.
+
+New Expandable view for AT+ Themes and Albums
+
+Updated tooltips and menu style with a glassy appearance
+
+Changed Blur view appearance to make the interface look more modern
+
+Border in sidebar now only available when selected tab colour is the same as the background colour due to some reason.
+
+About page looks more modern. Added option to view release notes.
+
+New splash screen.
+
+Nice little animation and feature tour for users trying this release for the first time.
+
+Added T&C and another info page.
+
+More optimizations.
+
+V 1.1.5
+Introduced Contrast-Safe Adaptive theme. All applied themes under adaptive colours are contrast-safe which means the colours don't look extra saturated or too bright/dark regardless of the applied wallpaper. Also light themes aren't allowed to have dark colours and vice versa.
+
+Faster performance and code optimization.
+
+Edited about page to urge users to send feedback.
+
+V 1.1.4 - 1
+This is an addition to the V1.1.4 update itself.
+
+
+Adaptive colour - Automatically set theme colours from the applied wallpaper. Get access to colour palettes based on the background or just toggle the feature on to automatically update applied GTK Theme whenever you change the wallpaper from Evolve.
+
+Modifiable palettes - The Adaptive Colour palettes are modifiable in case you don't like them, slight tweaking can help.
+
+All new logo for Evolve! The pack also contains a script which can be used for installing!
+
+Improved colour support - Reflects applied GTK Theme in a better manner.
+
+Improved support for Light themes.
+
+Performance optimizations - Evolve is now faster than Gnome Settings itself!
+
+Code optimization
+
+V 1.1.4
+
+Added option for changing system wallpaper.
+
+New Album Support shows other images present in the same directory which can be set as your wallpaper.
+
+Added support for applying AT+ Themes if installed using the GUI Installer. UI to be enhanced soon.
+
+Initial support for storing app data so the app now remembers user choices.
+
+Removed unnecessary tool tips and updated tool tips design.
+
+
+V 1.1.3
+
+Updated user interface. A more modern look.
+
+Fixed icon install failures where icons with more than 10 folders would not get recognized for installation
+
+Better response on changing light/dark css file
+
+
+V 1.1.2
+
+Visit to read in details.
+
+https://arcnations.wixsite.com/nex-apps/post/evolve-version-1-1-2
+
+Added initial app theming support for Yaru.
+
+Initial support for import based css themes (like Yaru).
+
+Added colour recognition inside the app for a more native feel.
+
+Improved theme installation support.
+
+Moved status bar from bottom to the top in the install theme section.
+
+
+V 1.1.1
+
+Added support for more GTK theme locations
+
+Fixed issues where default Ubuntu themes would not be visible (Yaru)

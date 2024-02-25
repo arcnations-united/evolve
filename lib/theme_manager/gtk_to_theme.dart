@@ -6,21 +6,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:process_run/process_run.dart';
 import 'gtk_widgets.dart';
 
-
+//edited how colours are fetched from gtk.css
 class ThemeDt {
   static Duration d = const Duration(milliseconds: 300);
   static Curve c = Curves.easeOutCubic;
-  static String ThemeName = "";
+  static String ThemeNamePath = "";
   static String? GTK4;
   static String GTK3 = "";
   static String ShellName = "";
   static String IconName = "";
-  static Map<String, Color> themeColors = {};
+  static FontWeight boldText=FontWeight.w400;
+  static Map<String, Color> themeColors = {
+    "bg": const Color(0xff353535),
+    "altbg": const Color(0xff595757),
+    "fg": const Color(0xffffffff),
+    "altfg": const Color(0xffdcdcdc),
+    "sltbg": const Color(0xff565656),
+    "rowSltBG": const Color(0xff2b2f37),
+    "rowSltLabel": const Color(0xffe3eeff),
+  };
   static bool isIcoFolderMade = false;
   static bool isThemeFolderMade = false;
 
   //Getters - Get and populate Lists or set values accordingly
-  Future<String> getGTKThemeName() async {
+  Future<String> getGTKThemePath() async {
     //returns the GTK theme name currently in use
     var sh = Shell();
     String s = """
@@ -28,7 +37,14 @@ class ThemeDt {
 """;
     String ThemeName = (await sh.run(s)).outText;
     ThemeName = ThemeName.replaceAll("'", "");
-    return ThemeName;
+    Directory d = Directory("/usr/share/themes/$ThemeName");
+    if(await d.exists()==false){
+      d = Directory("${SystemInfo.home}/.themes/$ThemeName");
+    }
+    if(await d.exists()==false){
+      return ThemeName;
+    }
+    return d.path;
   }
   Future<String> getShellThemeName() async {
     //returns the GTK theme name currently in use
@@ -55,7 +71,7 @@ gsettings get org.gnome.desktop.interface icon-theme
       Map m={};
       Directory gtk = Directory("${SystemInfo.home}/.config/gtk-4.0");
       if(!(await gtk.exists())){
-       await gtk.create(recursive: true);
+        await gtk.create(recursive: true);
       }
       //No idea why I used json but... yeah okay I guess?
       File gtkName = File("${SystemInfo.home}/.config/gtk-4.0/theme-info.json");
@@ -66,36 +82,35 @@ gsettings get org.gnome.desktop.interface icon-theme
       }
     } catch (e) {
       GTK4="Not Set";
+      // TODO
     }
   }
-  Future<bool> searchTheme({bool? dark, }) async {
+  Future<bool> searchTheme({bool? dark,}) async {
     dark ??= true;
-    String ThemePath =
-        "${(await getApplicationDocumentsDirectory()).parent.path.replaceAll("'", "")}/.themes/$ThemeName";
-    Directory themeDirectory = Directory(ThemePath);
-    if (await themeDirectory.exists()) {
+    Directory themeDirectory = Directory(ThemeNamePath);
       String gtkfile="gtk.css-new";
       if (dark) {
         gtkfile = "gtk-dark.css-new";
       }
-      var path = "$ThemePath/gtk-3.0/$gtkfile";
+      var path = "$ThemeNamePath/gtk-3.0/$gtkfile";
       File gtk = File(path);
       if (await gtk.exists()) {
-        themeColors = extractColors(filePath: path);
+        themeColors = await extractColors(filePath: path);
         return true;
-      } else{
-        gtkfile="gtk.css";
+      } else {
+        gtkfile = "gtk.css";
         if (dark) {
           gtkfile = "gtk-dark.css";
         }
-        path = "$ThemePath/gtk-3.0/$gtkfile";
+        path = "$ThemeNamePath/gtk-3.0/$gtkfile";
         gtk = File(path);
         if (await gtk.exists()) {
-          themeColors = extractColors(filePath: path);
+          themeColors = await extractColors(filePath: path);
           return true;
         }
       }
-    }
+
+
     return false;
   }
 
@@ -106,7 +121,6 @@ gsettings get org.gnome.desktop.interface icon-theme
 gsettings set org.gnome.desktop.interface gtk-theme $name
   """);
       ThemeDt.GTK3=name;
-      ThemeDt.ThemeName=name;
       await ThemeDt().setTheme(respectSystem: false);
     }catch (e) {
       if(context.mounted) {
@@ -124,23 +138,23 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       }
     }
   }
-  setGTK4(String name, context)async{
+  setGTK4(String pathToTheme, context)async{
     try {
       Directory dir = Directory("${SystemInfo.home}/.config/gtk-4.0");
       if(await dir.exists()){
         await dir.delete(recursive: true);
       }
       await Shell().run("""
-      cp -r ${SystemInfo.home}/.themes/$name/gtk-4.0 ${SystemInfo.home}/.config
+      cp -r $pathToTheme/gtk-4.0 ${SystemInfo.home}/.config
       """);
       File fl = File("${SystemInfo.home}/.config/gtk-4.0/theme-info.json");
-      Map m ={"THEME_NAME":name};
+      Map m ={"THEME_NAME":pathToTheme.split("/").last.replaceAll("/", "")};
       if(await fl.exists() == false){
         await fl.create();
       }else{
         fl.delete();
       }
-      GTK4 = name;
+      GTK4 = pathToTheme.split("/").last.replaceAll("/", "");
       await fl.writeAsString(jsonEncode(m));
     }  catch (e) {
       WidsManager().showMessage(
@@ -173,14 +187,16 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
                 Navigator.pop(context);
               }),
           context: context);
+      // TODO
     }
   }
   setTheme({bool? respectSystem, bool? dark}) async {
     respectSystem ??= true;
     try {
-      if (respectSystem) ThemeName = await getGTKThemeName();
+      if (respectSystem) ThemeNamePath = await getGTKThemePath();
       if (await searchTheme(dark: dark)) {
         generateTheme();
+
       } else {
         initiateFallbackTheme();
       }
@@ -196,37 +212,126 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
   }
 
   //Get colours from applied GTK Theme to set app theme.
-  Map<String, Color> extractColors({String? filePath, String? css}) {
+  Future<Map<String, Color>> extractColors({String? filePath, String? css}) async {
     final colorMap = <String, Color>{};
     File? file;
     if(filePath!=null)file= File(filePath);
-
     try {
-      final lines = (filePath==null)?css?.split("\n"):file?.readAsLinesSync();
+      var lines = (filePath==null)?css?.split("\n"):file?.readAsLinesSync();
+      if(lines!.length<=10){
+        for (String line in lines) {
+          if(line.startsWith("@import url(")){
+            line=line.trim();
+            String val = line.substring(line.indexOf("(")+1,line.indexOf(")")).replaceAll('"', '');
 
+            if(val.startsWith("resource:")){
+              String resLoc = val.substring("resource://".length);
+              Directory theme = Directory(file!.parent.path);
+              List dirFiles = theme.listSync();
+              String resFileLoc = "";
+              for(var fl in dirFiles){
+                if(fl.path.endsWith(".gresource")){
+                  resFileLoc=fl.path;
+                  break;
+                }
+              }
+              String res="";
+               try {
+                  res = await extractResToFile(resLoc : resLoc, resFileLoc: resFileLoc,);
+               }catch (e) {
+                 print(e);
+                 print("Please run the failed command and restart the app to apply the GTK Theme to the application.");
+               }
+              file = File("${file.parent.path}/theme.css");
+             if(res!=""){
+               file.writeAsString(res);
+               lines=res.split("\n");
+             }else {
+               lines = file.readAsLinesSync();
+             }
+            }
+          }
+        }
+      }
+      bool slt=false;
+      bool rowSltLabel=false;
       for (String line in lines!) {
+
         line=line.trim();
-       if(line.startsWith("@define-color theme_fg_color")){
-         int indEnd = "@define-color theme_fg_color".length;
-         String val = line.substring(indEnd, line.length-1).trim();
-         Color? clr;
-           if(val=="white") {
-             clr=Colors.white;
-           } else{
-             clr = ThemeManager().parseColor(val);
-           }
-         colorMap.addAll({"theme_fg_color":clr});
-       }
+        if(line.startsWith("@define-color theme_fg_color")){
+          int indEnd = "@define-color theme_fg_color".length;
+          String val = line.substring(indEnd, line.length-1).trim();
+          Color? clr;
+          if(val=="white") {
+            clr=Colors.white;
+          } else{
+            clr = ThemeManager().parseColor(val);
+          }
+          colorMap.addAll({"fg":clr});
+        }
         if(line.startsWith("@define-color theme_bg_color")){
           int indEnd = "@define-color theme_bg_color".length;
           String val = line.substring(indEnd, line.length-1).trim();
           Color? clr;
-            if(val=="white") {
-              clr=Colors.white;
-            } else{
+          if(val=="white") {
+            clr=Colors.white;
+          } else{
+            clr = ThemeManager().parseColor(val);
+          }
+          colorMap.addAll({"bg":clr});
+        }
+
+        if(line.startsWith("@define-color theme_selected_bg_color")){
+          int indEnd = "@define-color theme_selected_bg_color".length;
+          String val = line.substring(indEnd, line.length-1).trim();
+          Color? clr;
+          if(val=="white") {
+            clr=Colors.white;
+          } else{
+            clr = ThemeManager().parseColor(val);
+          }
+          colorMap.addAll({"sltbg":clr});
+        } if(slt==false&&line.startsWith("list.navigation-sidebar > row:selected {") || line.startsWith(".navigation-sidebar > row:selected:hover {")){
+
+          slt=true;
+          continue;
+        } if(rowSltLabel==false&&line.startsWith("list.navigation-sidebar > row:selected label {")||line.startsWith(".navigation-sidebar > row:selected label")){
+
+          rowSltLabel=true;
+          continue;
+        }
+        if(slt){
+          try{
+            int indEnd = "background-color:".length;
+            String val = line.substring(indEnd, line.length - 1).trim();
+
+            Color? clr;
+            if (val == "white") {
+              clr = Colors.white;
+            } else {
               clr = ThemeManager().parseColor(val);
             }
-          colorMap.addAll({"theme_bg_color":clr});
+            colorMap.addAll({"rowSltBG": clr});
+            slt = false;
+          }catch(e){
+            continue;
+          }
+        }if(rowSltLabel){
+          try{
+            int indEnd = "color:".length;
+            String val = line.substring(indEnd, line.length - 1).trim();
+
+            Color? clr;
+            if (val == "white") {
+              clr = Colors.white;
+            } else {
+              clr = ThemeManager().parseColor(val);
+            }
+            colorMap.addAll({"rowSltLabel": clr});
+            rowSltLabel = false;
+          }catch(e){
+            continue;
+          }
         }
       }
     } catch (e) {
@@ -235,30 +340,35 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
 
     return colorMap;
   }
-  generateTheme() {
-    HSLColor bg = HSLColor.fromColor(themeColors["theme_bg_color"]!);
-    HSLColor fg = HSLColor.fromColor(themeColors["theme_fg_color"]!);
-    HSLColor sltBG;
+  static bool lightTheme=false;
+  generateTheme({bool? shouldReturn, Map? themeColors}) {
+    themeColors ??= ThemeDt.themeColors;
+    HSLColor bg = HSLColor.fromColor(themeColors["bg"]!);
+    HSLColor fg = HSLColor.fromColor(themeColors["fg"]!);
+    HSLColor sltBG = HSLColor.fromColor(themeColors["sltbg"]!);
+    HSLColor rowSltBG = HSLColor.fromColor(themeColors["rowSltBG"] ?? Color(0xff2b2f37));
+    HSLColor rowSltLabel = HSLColor.fromColor(themeColors["rowSltLabel"] ?? Color(0xffe3eeff));
     HSLColor sltFG;
     HSLColor altBG;
     HSLColor altFG;
     bool isLight = bg.lightness > 0.5;
+    lightTheme=isLight;
     if (isLight) {
-      sltBG = changeLight(color: bg, factor: 1.3, light: false);
-      altBG = changeLight(color: bg, factor: 1.6, light: false);
+      //sltBG = changeLight(color: bg, factor: 1.3, light: false);
+      altBG = changeLight(color: bg, factor: 1.1,);
       sltFG = changeLight(
         color: fg,
-        factor: 1.3,
+        factor: 1.1,
       );
       altFG = changeLight(
         color: fg,
-        factor: 1.6,
+        factor: 1.2,
       );
     } else {
-      sltBG = changeLight(
-        color: bg,
-        factor: 1.75,
-      );
+     // sltBG = changeLight(
+      //  color: bg,
+      //  factor: 1.75,
+      //);
       altBG = changeLight(
         color: bg,
         factor: 1.4,
@@ -266,14 +376,29 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
       sltFG = changeLight(color: fg, factor: 1.3, light: false);
       altFG = changeLight(color: fg, factor: 1.6, light: false);
     }
-    themeColors = {
+    if(shouldReturn ?? false){
+      return  {
+        "bg": bg.toColor(),
+        "fg": fg.toColor(),
+        "altfg": altFG.toColor(),
+        "altbg": altBG.toColor(),
+        "sltbg": sltBG.toColor(),
+        "sltfg": sltFG.toColor(),
+        "rowSltBG": rowSltBG.toColor(),
+        "rowSltLabel": rowSltLabel.toColor(),
+      };
+    }else {
+      ThemeDt.themeColors = {
       "bg": bg.toColor(),
       "fg": fg.toColor(),
       "altfg": altFG.toColor(),
       "altbg": altBG.toColor(),
       "sltbg": sltBG.toColor(),
       "sltfg": sltFG.toColor(),
+        "rowSltBG": rowSltBG.toColor(),
+        "rowSltLabel": rowSltLabel.toColor(),
     };
+    }
   }
   HSLColor changeLight({required HSLColor color, required double factor, bool? light}) {
     light ??= true;
@@ -285,11 +410,33 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
     }
   }
   initiateFallbackTheme() {
+    print("Fallback theme initiated - Adwaita colours");
     themeColors = {
-      "theme_bg_color": const Color(0xff353535),
-      "theme_fg_color": const Color(0xffffffff),
+      "bg": const Color(0xff353535),
+      "fg": const Color(0xffffffff),
+      "sltbg": const Color(0xff565656),
+      "rowSltBG": const Color(0xff757474),
+      "rowSltLabel": const Color(0xffe3eeff),
     };
     generateTheme();
+  }
+
+   extractResToFile({required String resLoc, required String resFileLoc}) async{
+    String finalPath = resFileLoc.substring(0,resFileLoc.lastIndexOf("/"),);
+String cmd = "gresource extract /home/arcnations/.themes/Yaru/gtk-3.0/gtk.gresource /com/ubuntu/themes/Yaru/3.0/gtk-dark.css >/home/arcnations/.themes/Yaru/gtk-3.0/theme.css";
+
+//await Shell().run(cmd);
+     final result = await Process.run(
+       'gresource',
+       ['extract', resFileLoc, resLoc,],
+     );
+     return result.stdout;
+  }
+static String oldWallpaper="";
+  Future<void> setWallpaper(String s) async{
+    oldWallpaper=WidsManager.wallPath;
+   await Shell().run("""gsettings set org.gnome.desktop.background picture-uri 'file://$s'""");
+   await Shell().run("""gsettings set org.gnome.desktop.background picture-uri-dark 'file://$s'""");
   }
 }
 class SystemInfo{
@@ -297,29 +444,33 @@ class SystemInfo{
   //stores system level info like home directory path and all
   static String home="";
   Future<void> getHome() async {
- home = ((await getApplicationDocumentsDirectory()).parent.path)
+    home = ((await getApplicationDocumentsDirectory()).parent.path)
         .replaceAll("'", "");
   }
 
- Future<int> isTheme(String path)async{
+  Future<int> isTheme(String path)async{
 
     int i =0;
     int j =0;
-    List<String>checkList=["gtk-2.0","gtk-3.0","gtk-4.0","gnome-shell", "index.theme"];
-    List<String>checkListIco=["apps","categories","16x16","22x22", "24x24","64x64","128x128","index.theme", "animation", "panel"];
+    List<String>checkList=["gtk-2.0","gtk-3.0","gnome-shell",];
+    List<String>checkListIco=["apps","actions","categories","16x16","22x22", "24x24","64x64","128x128","index.theme", "animation", "panel"];
     Directory dir = Directory(path);
     List l = dir.listSync();
+
     for(var lst in l){
-    if(checkList.contains(lst.toString().split("/").last.replaceAll("'", ""))){
-      i++;
-    }else if(checkListIco.contains(lst.toString().split("/").last.replaceAll("'", ""))){
-      j++;
+      if(checkList.contains(lst.toString().split("/").last.replaceAll("'", ""))){
+        i++;
+      }else if(checkListIco.contains(lst.toString().split("/").last.replaceAll("'", ""))){
+        j++;
+      }
     }
+    if(i==checkList.length) {
+      if(l.length>10)return 0;
+      return 1;
     }
-   if(i==checkList.length) return 1;
-   if(j>=3&&j<=checkListIco.length) {
+    if(j>=3&&j<=checkListIco.length) {
       return 2;
     }
     return 0;
- }
+  }
 }
