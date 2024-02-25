@@ -3,9 +3,12 @@ import 'dart:ui';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gtkthememanager/back_end/app_data.dart';
+import 'package:gtkthememanager/back_end/colour_info.dart';
 import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
+
+import '../back_end/adaptive_theming.dart';
 //manages wallpaper adaptive theming along with gtk colour edit
 //thought implementing here would help since we are already changing colours of gtk themes inside this page
 //but I don't think it was useful enough. Should have opted for separate dart file but yeah its fine...
@@ -37,6 +40,7 @@ class _ChangeColorsState extends State<ChangeColors> {
     // TODO: implement initState
     try {
       if (widget.editAccents ?? false) {
+
         setAccentEditPage();
         // oldCol=[ThemeDt.themeColors["bg"]!,ThemeDt.themeColors["fg"]!,ThemeDt.themeColors["sltbg"]!,ThemeDt.themeColors["altbg"]!,ThemeDt.themeColors["altfg"]!];
       } else {
@@ -71,13 +75,6 @@ class _ChangeColorsState extends State<ChangeColors> {
     ltness = HSLColor.fromColor(ThemeDt.themeColors["bg"]!).lightness;
     await AdaptiveTheming().genColours(context);
     wall = await WidsManager().getWallpaperSample();
-    oldCol = [
-      ThemeDt.themeColors["bg"]!,
-      ThemeDt.themeColors["fg"]!,
-      ThemeDt.themeColors["sltbg"]!,
-      ThemeDt.themeColors["rowSltBG"]!,
-      ThemeDt.themeColors["rowSltLabel"]!
-    ];
     if (AppData.DataFile["AUTOTHEMECOLOR"] == "max") {
       AppData.DataFile["AUTOTHEMECOLOR"] =
           AdaptiveTheming.paletteColours.length - 1;
@@ -96,7 +93,7 @@ class _ChangeColorsState extends State<ChangeColors> {
         return PopScope(
           canPop: true,
           onPopInvoked: (didPop) async {
-            await Future.delayed(const Duration(milliseconds: 200));
+            //await Future.delayed(const Duration(milliseconds: 200));
             await ThemeDt().setTheme(respectSystem: true);
             AppData().writeDataFile();
             widget.state();
@@ -220,49 +217,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                                                       message:
                                                           "Applying theme system-wide",
                                                       context: context);
-                                                  List<Color> col = [
-                                                    ThemeDt.themeColors["bg"]!,
-                                                    ThemeDt.themeColors["fg"]!,
-                                                    ThemeDt
-                                                        .themeColors["sltbg"]!,
-                                                    ThemeDt.themeColors[
-                                                        "rowSltBG"]!,
-                                                    ThemeDt.themeColors[
-                                                        "rowSltLabel"]!
-                                                  ];
-                                                  await ThemeManager()
-                                                      .updateColors(
-                                                          path: widget.filePath,
-                                                          col: col,
-                                                          oldCol: oldCol,
-                                                          updateAll: true,
-                                                          update: false);
-                                                  File gtk3 =
-                                                      File(widget.filePath);
-                                                  File gtk3dark;
-                                                  if (widget.filePath
-                                                      .contains("gtk-dark")) {
-                                                    gtk3dark = File(
-                                                        "${gtk3.parent.path}/gtk.css");
-                                                  } else {
-                                                    gtk3dark = File(
-                                                        "${gtk3.parent.path}/gtk-dark.css");
-                                                  }
-                                                  await ThemeManager()
-                                                      .updateColors(
-                                                          path: gtk3dark.path,
-                                                          col: col,
-                                                          oldCol: oldCol,
-                                                          updateAll: true,
-                                                          update: false);
-                                                  await ThemeDt().setTheme(
-                                                      respectSystem: true);
-                                                  AppData.DataFile[
-                                                          "AUTOTHEMECOLOR"] =
-                                                      active;
-                                                  await AppData()
-                                                      .writeDataFile();
-                                                  widget.state();
+                                                await AdaptiveTheming().makeThemeAdaptive(filePath: widget.filePath, active: active);
                                                   Navigator.pop(context);
                                                   Navigator.pop(context);
                                                 },
@@ -423,10 +378,10 @@ class _ChangeColorsState extends State<ChangeColors> {
                                             ghost: active == i,
                                             onTap: () {
                                               active = i;
-                                              ThemeDt.themeColors =
-                                                  AdaptiveTheming
-                                                      .paletteColours.values
-                                                      .elementAt(i);
+                                              Map themeCopy =  ThemeDt.themeColors;
+                                              ThemeDt.themeColors.forEach((key, value) {
+                                                themeCopy[key]= ColourManipulate().setHue(value, fromColor:  AdaptiveTheming.paletteColours.values.elementAt(i).values.elementAt(0));
+                                              });
                                               satVal = HSLColor.fromColor(
                                                       ThemeDt
                                                           .themeColors["bg"]!)

@@ -13,6 +13,8 @@ import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:process_run/process_run.dart';
 
+import '../back_end/adaptive_theming.dart';
+
 class Appearances extends StatefulWidget {
   final Function() state;
   const Appearances({super.key, required this.state});
@@ -521,7 +523,7 @@ widget: Column(
                       ),
                       WidsManager().getTooltip(
                         text:
-                            "Use Background image colours in GTK3 Theme. GTK4 support to be added soon. Right click for quick access.",
+                            "Use Background image colours in applied GTK Theme.",
 
                         child: GestureDetector(
                           onTap: () async { String fle="";
@@ -1292,8 +1294,6 @@ widget: Column(
   Future<void> setAdaptiveTheme() async {
 
      if(AppData.DataFile["AUTOTHEMECOLOR"]!=null){
-       ThemeDt.d=const Duration(milliseconds: 600);
-
        showDialog(context: context,barrierColor: Colors.transparent, builder: (BuildContext context) {
          return BlurryContainer(
            blur: 5,elevation: 0,
@@ -1329,20 +1329,15 @@ widget: Column(
         print(e);
         //skip
       }
-       oldCol=[ThemeDt.themeColors["bg"]!,ThemeDt.themeColors["fg"]!,ThemeDt.themeColors["sltbg"]!,ThemeDt.themeColors["rowSltBG"]!,ThemeDt.themeColors["rowSltLabel"]!];
-    ThemeDt.themeColors=AdaptiveTheming.paletteColours.values.elementAt(AppData.DataFile["AUTOTHEMECOLOR"]=="max"?AdaptiveTheming.paletteColours.values.length-1:AppData.DataFile["AUTOTHEMECOLOR"]);
-      // ThemeDt.themeColors=ThemeManager.paletteColours.values.elementAt(0);
-       List <Color> col=[ThemeDt.themeColors["bg"]!,ThemeDt.themeColors["fg"]!,ThemeDt.themeColors["sltbg"]!, ThemeDt.themeColors["rowSltBG"]!,ThemeDt.themeColors["rowSltLabel"]!];
-       await ThemeManager().updateColors( path: "$globalAppliedThemePath/gtk-3.0/gtk.css", col: col, oldCol:  oldCol, updateAll: true,update: false);
-       await ThemeManager().updateColors( path: "$globalAppliedThemePath/gtk-3.0/gtk-dark.css", col: col, oldCol:  oldCol, updateAll: true,update: false);
+      await AdaptiveTheming().makeThemeAdaptive(filePath: globalAppliedThemePath, active: 0);
        //await Future.delayed(Duration(seconds: 1));
-       AppData.DataFile["AUTOTHEMECOLOR"]=3;
+       AppData.DataFile["AUTOTHEMECOLOR"]=0;
        await AppData().writeDataFile();
        settingColour=false;
        Navigator.pop(context);
        widget.state();
-       await Future.delayed(const Duration(milliseconds: 600));
-       ThemeDt.d=const Duration(milliseconds: 300);
+      // await Future.delayed(const Duration(milliseconds: 600));
+      // ThemeDt.d=const Duration(milliseconds: 300);
     }
   }
 

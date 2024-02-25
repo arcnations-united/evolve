@@ -115,7 +115,7 @@ gsettings get org.gnome.desktop.interface icon-theme
   }
 
   //Setters - Set mostly system level GTK Theme or Icons
-  setGTK3(name, BuildContext context) async{
+  setGTK3(name,  [context]) async{
     try {
       await Shell().run("""
 gsettings set org.gnome.desktop.interface gtk-theme $name
@@ -123,8 +123,8 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       ThemeDt.GTK3=name;
       await ThemeDt().setTheme(respectSystem: false);
     }catch (e) {
-      if(context.mounted) {
-        WidsManager().showMessage(
+       if(context!=null) {
+         WidsManager().showMessage(
             title: "Error",
             message:
             "GTK 3.0 theme could not be applied. Make sure you have user-themes extension installed.",
@@ -135,10 +135,13 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
                   Navigator.pop(context);
                 }),
             context: context);
-      }
+       }
+       else{
+         print(e);
+       }
     }
   }
-  setGTK4(String pathToTheme, context)async{
+  setGTK4(String pathToTheme, [context])async{
     try {
       Directory dir = Directory("${SystemInfo.home}/.config/gtk-4.0");
       if(await dir.exists()){
@@ -157,6 +160,7 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       GTK4 = pathToTheme.split("/").last.replaceAll("/", "");
       await fl.writeAsString(jsonEncode(m));
     }  catch (e) {
+    if(context!=null) {
       WidsManager().showMessage(
           title: "Error",
           message: "The theme could not be applied!",
@@ -166,8 +170,9 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
           },text:"Close",),
           context: context);
     }
+    }
   }
-  setShell(String name, context)async{
+  setShell(String name, [context])async{
     String Name=name;
     name="""
 "'$name'"
@@ -176,18 +181,21 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       await Shell().run("""dconf write /org/gnome/shell/extensions/user-theme/name $name""");
       ShellName=Name;
     }catch (e) {
-      WidsManager().showMessage(
-          title: "Warning",
-          message:
-          "Shell theme could not be applied. Make sure you have user-themes extension installed.",
-          icon: Icons.warning_rounded,
-          child: GetButtons(
-              text: "Close",
-              onTap: () {
-                Navigator.pop(context);
-              }),
-          context: context);
-      // TODO
+      if(context!=null){
+        WidsManager().showMessage(
+            title: "Warning",
+            message:
+                "Shell theme could not be applied. Make sure you have user-themes extension installed.",
+            icon: Icons.warning_rounded,
+            child: GetButtons(
+                text: "Close",
+                onTap: () {
+                  Navigator.pop(context);
+                }),
+            context: context);
+      }else{
+        print(e);
+      }
     }
   }
   setTheme({bool? respectSystem, bool? dark}) async {

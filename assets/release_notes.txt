@@ -1,4 +1,11 @@
 RELEASE NOTES
+[V 1.2.1] PUBLIC RELEASE
+
+Replaced contrast safety with a more efficient code.
+
+Adaptive theming support extended to GTK4 and gnome-shell
+
+Force updates GTK3 Theme after changing colours in adaptive theme
 
 [V 1.2]  PUBLIC RELEASE
 
