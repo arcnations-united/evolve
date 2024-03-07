@@ -318,13 +318,13 @@ class _InstallerState extends State<Installer> {
       Directory thms = Directory("${SystemInfo.home}/.themes");
       if(isTheme[index]==1){
         if(!(await thms.exists())){
-          thms.create(recursive: true);
+          await thms.create(recursive: true);
         }
         await Shell().run("""cp -r ${dirList[index].path} ${thms.path}""");
       }
       else if(isTheme[index]==2){
         if(!(await ico.exists())){
-          ico.create(recursive: true);
+          await ico.create(recursive: true);
         }
         await Shell().run("""cp -r ${dirList[index].path} ${ico.path}""");
       }

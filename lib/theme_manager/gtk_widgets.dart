@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:blurrycontainer/blurrycontainer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gtkthememanager/back_end/app_data.dart';
@@ -12,7 +13,13 @@ import 'gtk_to_theme.dart';
 //Returns required widgets in style of the applied GTK Theme
 class WidsManager{
   static int activeTab=0;
-  Widget getContainer({bool? border,child,double? pad,double? width,double? height, bool? blur}){
+  Widget getContainer({
+    double borderOpacity=1.0,
+    Duration? duration,
+    Curve? curve,
+    double? borderRadius, String? colour,bool? border,child,double? pad,double? width,double? height, bool? blur}){
+    borderRadius ??= 10;
+    colour ??= "altbg";
     blur ??=false;
     border ??= false;
     pad ??= 10;
@@ -22,8 +29,8 @@ class WidsManager{
         height: height,
         elevation: 20,
         blur: 10,
-        borderRadius: const BorderRadius.all(
-            Radius.circular(10)),
+        borderRadius:  BorderRadius.all(
+            Radius.circular(borderRadius)),
         color: ThemeDt.themeColors["sltbg"]!.withOpacity(0.16),
         child: child
       );
@@ -33,15 +40,15 @@ class WidsManager{
       width: width,
       height: height,
       padding: EdgeInsets.all(pad),
-      duration: ThemeDt.d,
-      curve: ThemeDt.c,
+      duration: duration ?? ThemeDt.d,
+      curve: curve ?? ThemeDt.c,
       decoration: BoxDecoration(
           border: border?Border.all(
             width: 1.5,
-            color: ThemeDt.themeColors["fg"] ?? Colors.transparent,
+            color: (ThemeDt.themeColors["fg"] ?? Colors.transparent).withOpacity(borderOpacity),
           ):null,
-          color: ThemeDt.themeColors["altbg"],
-          borderRadius: BorderRadius.circular(10)
+          color: ThemeDt.themeColors[colour],
+          borderRadius: BorderRadius.circular(borderRadius)
       ),
       child: child,
     );
@@ -49,14 +56,13 @@ class WidsManager{
   Text getText(String s, {double? size,bool? center, bool? stylize, int? maxLines, String? color, FontWeight? fontWeight}){
     stylize ??= false;
     center ??= false;
-    size ??= AppData.DataFile["MAXSIZE"] == "TRUE" ? 15:13;
+    size ??= AppData.DataFile["MAXSIZE"] == true ? 15:13;
     return Text(s, textAlign:(center)? TextAlign.center:null,maxLines: maxLines, overflow: TextOverflow.fade, style:stylize==true?
     GoogleFonts.audiowide(
       color: ThemeDt.themeColors[color ?? "fg"], fontSize: size,
 
     ):
     GoogleFonts.lexendDeca(
-
       color: ThemeDt.themeColors[color ?? "fg"], fontSize: size,
       fontWeight: fontWeight ?? (size>15? FontWeight.w200 : FontWeight.w300),
 
@@ -236,7 +242,7 @@ class _TabButtonState extends State<TabButton> {
           decoration: BoxDecoration(
               color: ThemeDt.themeColors[widget.Tab==WidsManager.activeTab?"rowSltBG":(hover)?"altbg":"bg"],
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(width: 2, color: (((AppData.DataFile["HCONTRAST"] == "TRUE") ? (widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null : ThemeDt.themeColors["rowSltBG"]==ThemeDt.themeColors["bg"]?((widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null):null) ?? Colors.transparent)),
+              border: Border.all(width: 2, color: (((AppData.DataFile["HCONTRAST"] ?? false) ? (widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null : ThemeDt.themeColors["rowSltBG"]==ThemeDt.themeColors["bg"]?((widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null):null) ?? Colors.transparent)),
           ),
           duration: ThemeDt.d,
           curve: ThemeDt.c,
@@ -254,10 +260,11 @@ class GetButtons extends StatefulWidget {
   final  child;
   final String? text;
   final bool? light;
+  final bool? pillShaped;
   final bool? ghost;
   final bool? moreResponsive;
   final double? ltVal;
-  const GetButtons({this.ltVal, this.child, this.text, this.ghost,  super.key, required this.onTap, this.light, this.moreResponsive});
+  const GetButtons({this.ltVal, this.child, this.text, this.ghost,  super.key, required this.onTap, this.light, this.moreResponsive, this.pillShaped});
 
   @override
   _GetButtonsState createState() => _GetButtonsState();
@@ -329,7 +336,7 @@ class _GetButtonsState extends State<GetButtons> {
                   HSLColor.fromColor(buttonCol).lightness*(widget.ltVal ?? 2)>1 ?1:HSLColor.fromColor(buttonCol).lightness*(widget.ltVal ?? 2)
               ).toColor():
               buttonCol,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(widget.pillShaped??false?100:10),
               border: Border.all(
                 width: 2,
                 color: (widget.ghost ?? false)?ThemeDt.themeColors["fg"]!:
@@ -338,7 +345,7 @@ class _GetButtonsState extends State<GetButtons> {
           ),
           duration: ThemeDt.d,
           curve: ThemeDt.c,
-          padding:(widget.moreResponsive ?? false)? EdgeInsets.all((hover)?10:15):const EdgeInsets.all(8),
+          padding:(widget.moreResponsive ?? false)? EdgeInsets.all((hover)?10:15): widget.pillShaped ?? false ? EdgeInsets.only(left: 20,right: 20,top: 10,bottom: 10):EdgeInsets.all(8),
           margin:(widget.moreResponsive ?? false)? EdgeInsets.all((hover)?5:0) : EdgeInsets.zero,
           child: (widget.child==null)?WidsManager().getText(widget.text ?? "",):widget.child,
         ),
@@ -577,3 +584,48 @@ class _GetTextBoxState extends State<GetTextBox> {
     );
   }
 }
+
+
+class GetToggleButton extends StatefulWidget {
+  bool value;
+  final Function onTap;
+  GetToggleButton({required this.value, required this.onTap,super.key});
+
+  @override
+  State<GetToggleButton> createState() => _GetToggleButtonState();
+}
+
+class _GetToggleButtonState extends State<GetToggleButton> {
+  @override
+  Widget build(BuildContext context) {
+
+    return  GestureDetector(
+      onTap: (){
+        widget.onTap();
+      },
+      child: Stack(
+        children: [
+          WidsManager().getContainer(
+           // curve: Curves.ease,
+            duration: 600.milliseconds,
+            width: 43,
+              height: 23,
+              borderRadius: 100,
+              border: true,
+            colour: widget.value?"fg":"bg"
+          ),
+          AnimatedContainer(duration: ThemeDt.d, curve: ThemeDt.c,
+            width: 16,
+            height: 16,
+            margin: EdgeInsets.only(left: widget.value?23:4, top: 3.4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: ThemeDt.themeColors[!widget.value?"fg":"bg"]
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+

@@ -515,7 +515,7 @@ widget: Column(
                             );
                           },
                           itemCount: PThemes.themeMap.isEmpty ? 1 : 2,
-                          autoplay: AppData.DataFile["AUTOPLAY"] ?? true,
+                          autoplay: PThemes.themeMap.isNotEmpty? AppData.DataFile["AUTOPLAY"] ?? true : false,
                         ),
                       ),
                       const SizedBox(

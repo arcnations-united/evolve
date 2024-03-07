@@ -20,7 +20,6 @@ class _CheckValidityState extends State<CheckValidity> {
   @override
   void initState() {
     // TODO: implement initState
-
     fetchCode();
     super.initState();
   }

@@ -58,6 +58,7 @@ class _WidgetGTKState extends State<WidgetGTK> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: <Widget>[
                         GetButtons(
+
                             light: true,
                             text: "Okay",
                             onTap: () async {
