@@ -1,4 +1,92 @@
 RELEASE NOTES
+Public release
+
+Next update - 1.3.1 will be out public as usual with all the bug fixes in the new features. This release includes all the features of 1.2.x releases of Evolve.
+[v1.3 - Public release]
+
+-bug fixes
+
+[v1.2.5]
+
+-New app launch animation
+
+-Splash screen is not visible, app launches directly now. (Most of the time)
+
+-The flash when the app used to launch is now fixed.
+
+-Themes page wallpapers (images in album and preview) now have a fade animation when laid out.
+
+-New theme page now supports advanced mode.
+
+-Lets you transfer content from one theme to the other to mix theme styles
+
+-Small UI changes
+
+-Changed handling of blur. Now animated and smoother. Reduces but does not eliminate flicker.
+
+-Tooltips appear with a new smoother animation
+
+-Redesigned blurry widgets
+
+-New message box animation and look
+
+-respect GNOME UI has some changes.
+
+-settings page - 'Reset Settings' now swiftly changes position when app size changes.
+
+[ v1.2.4 ]
+
+-Added Flatpak support!
+
+-App Specific settings now has System wide settings too. UI changed accordingly
+
+    -Added toggle for changing flatpak themes
+
+    -Added new option to make default gnome shell editable
+
+    -Turning on "Respect GNOME"removes blur effect from most of the app UI.
+
+    -Delete Account Data button now renamed to "Reset Settings"
+
+        -Reset Settings automatically closes the app after clicking.
+
+-Edit Colours page has major changes
+
+    -New filter option enables users to filter color based on Hue, Saturation, Value and Hex code.
+
+    -New HSV adjustment option. Enables users to modify all colours or group of colours accordingly using "Factors"
+
+    -New multiple colour adjustment support when filter mode is turned on
+
+    -New Menu Style, will reflect to the entire app in next release
+
+[ v1.2.3 ]
+
+-Adaptive Theming option disappears when applied theme isn't supported. Prevents possible theme corruption.
+
+-Added new "Adwaita" option in Global theme to apply default GTK3/4 and Shell theme
+
+-Added an undo button in the icons page to revert changes and set Icons to default
+
+-UI Tweaks changes the looks of app settings and respect GNOME about page keeping Libadwaita in mind.
+
+-Responsive UI improvements in album
+
+-Set AT+ Theme has a new look - more legible understanding of colours.
+
+[ v1.2.2 ]
+
+-All new title bar gives full control to Evolve
+-Made the UI Responsive (Mostly)
+   -The UI now flows smoothly and adapts to the window size
+
+-Added new GNOME UI mode which mimics GNOME interface more closely
+   -New about page which mimics the GNOME look when this option is ON
+
+-App Settings page got a new look to mimic Gnome Settings pages
+  -New options added to turn off animations inside the app
+
+
 [V 1.2.1] PUBLIC RELEASE
 
 Replaced contrast safety with a more efficient code.
