@@ -116,6 +116,7 @@ gsettings get org.gnome.desktop.interface icon-theme
 
   //Setters - Set mostly system level GTK Theme or Icons
   setGTK3(name,  [context]) async{
+    if(name =="default")name="Adwaita";
     try {
       await Shell().run("""
 gsettings set org.gnome.desktop.interface gtk-theme $name
@@ -147,6 +148,7 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       if(await dir.exists()){
         await dir.delete(recursive: true);
       }
+      if(pathToTheme=="default")return;
       await Shell().run("""
       cp -r $pathToTheme/gtk-4.0 ${SystemInfo.home}/.config
       """);
@@ -173,6 +175,9 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
     }
   }
   setShell(String name, [context])async{
+    if(name=="default"){
+      name="Adwaita";
+    }
     String Name=name;
     name="""
 "'$name'"
@@ -354,8 +359,8 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
     HSLColor bg = HSLColor.fromColor(themeColors["bg"]!);
     HSLColor fg = HSLColor.fromColor(themeColors["fg"]!);
     HSLColor sltBG = HSLColor.fromColor(themeColors["sltbg"]!);
-    HSLColor rowSltBG = HSLColor.fromColor(themeColors["rowSltBG"] ?? Color(0xff2b2f37));
-    HSLColor rowSltLabel = HSLColor.fromColor(themeColors["rowSltLabel"] ?? Color(0xffe3eeff));
+    HSLColor rowSltBG = HSLColor.fromColor(themeColors["rowSltBG"] ?? const Color(0xff2b2f37));
+    HSLColor rowSltLabel = HSLColor.fromColor(themeColors["rowSltLabel"] ?? const Color(0xffe3eeff));
     HSLColor sltFG;
     HSLColor altBG;
     HSLColor altFG;
@@ -428,7 +433,11 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
     };
     generateTheme();
   }
-
+listResFile(String resFilePath) async {
+    String res = (await Shell().run("""gresource list $resFilePath""")).outText;
+    List str = res.split('\n');
+    return str;
+}
    extractResToFile({required String resLoc, required String resFileLoc}) async{
     String finalPath = resFileLoc.substring(0,resFileLoc.lastIndexOf("/"),);
 String cmd = "gresource extract /home/arcnations/.themes/Yaru/gtk-3.0/gtk.gresource /com/ubuntu/themes/Yaru/3.0/gtk-dark.css >/home/arcnations/.themes/Yaru/gtk-3.0/theme.css";
@@ -445,6 +454,31 @@ static String oldWallpaper="";
     oldWallpaper=WidsManager.wallPath;
    await Shell().run("""gsettings set org.gnome.desktop.background picture-uri 'file://$s'""");
    await Shell().run("""gsettings set org.gnome.desktop.background picture-uri-dark 'file://$s'""");
+  }
+
+   Future<void> setFlatpakTheme(String globalAppliedTheme, BuildContext context) async {
+    WidsManager().showMessage(title: "Authenticator", message: "Enter admin password to apply Flatpak Theme", context: context,
+        child: GetTextBox(
+isSensitive: true,
+          onDone: (txt) async {
+            Navigator.pop(context);
+            try{
+              Directory dir = Directory(globalAppliedTheme);
+
+              print(dir.parent.path);
+              String run ="""
+bash -c "echo \"$txt\" | sudo -S flatpak override --filesystem=$globalAppliedTheme"
+bash -c "echo \"$txt\" | sudo -S flatpak override --env=GTK_THEME=${dir.path.split("/").last}"
+              """;
+             await Shell().run(run);
+              run ="""
+              """;
+             await Shell().run(run);
+            }catch(e){
+WidsManager().showMessage(title: "Error", message: e.toString(), context: context);
+            }
+          },
+        ));
   }
 }
 class SystemInfo{

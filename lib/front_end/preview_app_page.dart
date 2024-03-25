@@ -24,7 +24,7 @@ class _PreviewPageState extends State<PreviewPage> {
   @override
   void initState() {
     // TODO: implement initState
-    t=Timer(Duration(seconds: 8), () {
+    t=Timer(const Duration(seconds: 8), () {
       img.add(Image.asset(
           height: MediaQuery.sizeOf(context).height,
           width: MediaQuery.sizeOf(context).width,fit: BoxFit.fitWidth,
@@ -54,18 +54,18 @@ class _PreviewPageState extends State<PreviewPage> {
   Widget build(BuildContext context) {
     return  Scaffold(
       floatingActionButton: FloatingActionButton(
-        backgroundColor:Color(0xffd1e1fd),
+        backgroundColor:const Color(0xffd1e1fd),
         onPressed: () async {
 
           t?.cancel();
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => WidgetGTK(state: widget.state)));
+                  builder: (context) => const WidgetGTK()));
         },
-child: Icon(Icons.chevron_right),
+child: const Icon(Icons.chevron_right),
       ),
-      backgroundColor: Color(0xffd1e1fd),
+      backgroundColor: const Color(0xffd1e1fd),
 body: Stack(
   children: [
 

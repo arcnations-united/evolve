@@ -1,17 +1,21 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gtkthememanager/front_end/main_page.dart';
 import 'package:gtkthememanager/front_end/preview_app_page.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
+import 'package:page_transition/page_transition.dart';
+
 import '../back_end/app_data.dart';
+import 'app_specific_settings.dart';
 
 
 class CheckValidity extends StatefulWidget {
   final Function() state;
   const CheckValidity({super.key, required this.state});
-//removed delay, new splash screen
+
   @override
   State<CheckValidity> createState() => _CheckValidityState();
 }
@@ -20,24 +24,26 @@ class _CheckValidityState extends State<CheckValidity> {
   @override
   void initState() {
     // TODO: implement initState
+
     fetchCode();
     super.initState();
   }
   bool isLoading =true;
   fetchCode()async{
-    await Future.delayed(1.seconds);
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-            AppData.dt_not_present?PreviewPage(state: widget.state):WidgetGTK(state: widget.state))
-    );
-
+    await ThemeDt().setTheme();
+    await AppData().fetchDataFile();
+    await AppSettingsToggle().updateAllParams();
+          Navigator.push(
+              context,
+              PageTransition(
+                  type: PageTransitionType.fade,
+                  child: AppData.dt_not_present?PreviewPage(state: widget.state):const WidgetGTK())
+          );
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:isLoading?const Color(0xffd1e1fd):ThemeDt.themeColors["bg"],
+      backgroundColor:ThemeDt.themeColors["bg"],
       body: Padding(
         padding: const EdgeInsets.only(left: 38.0,right: 38),
         child:Center(
@@ -77,4 +83,5 @@ class FailPage extends StatelessWidget {
     );
   }
 }
+
 

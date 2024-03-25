@@ -2,9 +2,7 @@ import 'dart:io';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:process_run/process_run.dart';
 
 class ThemeManager {
   //Class to manage theme and icon list inside the system
@@ -325,6 +323,7 @@ class ThemeManager {
           await ThemeDt().extractColors(filePath: cssFile.path);
       ThemeDt().generateTheme();
     }
+    cssContents="";
   }
 }
 

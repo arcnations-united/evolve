@@ -1,278 +1,689 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:blurrycontainer/blurrycontainer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gtkthememanager/back_end/app_data.dart';
 import 'package:process_run/process_run.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'gtk_to_theme.dart';
 
 //Returns required widgets in style of the applied GTK Theme
-class WidsManager{
-  static int activeTab=0;
-  Widget getContainer({
-    double borderOpacity=1.0,
-    Duration? duration,
-    Curve? curve,
-    double? borderRadius, String? colour,bool? border,child,double? pad,double? width,double? height, bool? blur}){
+class WidsManager {
+  static int activeTab = 0;
+  static List<String> tabs = ["Theme", "Icons", "Settings", "About"];
+  Widget getContainer(
+      {double borderOpacity = 1.0,
+      double? mar,
+      Duration? duration,
+      Curve? curve,
+      double? borderRadius,
+      String? colour,
+      bool? border,
+      child,
+      double? pad,
+      double? width,
+      double? height,
+      bool? blur}) {
     borderRadius ??= 10;
-    colour ??= "altbg";
-    blur ??=false;
+    blur ??= false;
+    if(AppData.DataFile["GNOMEUI"]==true){
+      blur=false;
+    }
+    colour ??= blur ? "fg" : "altbg";
+
     border ??= false;
     pad ??= 10;
-    if(blur) {
-      return BlurryContainer(
-        width: width,
-        height: height,
-        elevation: 20,
-        blur: 10,
-        borderRadius:  BorderRadius.all(
-            Radius.circular(borderRadius)),
-        color: ThemeDt.themeColors["sltbg"]!.withOpacity(0.16),
-        child: child
+    if (blur) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedBlurryContainer(
+         // filter: ImageFilter.blur(sigmaY: 30,sigmaX: 30),
+          //delay: 1.seconds,
+          blur:15,
+          duration: 600.milliseconds,
+          child: Container(
+
+            height: height,
+            width: width,
+              padding: EdgeInsets.all(pad),
+              decoration: BoxDecoration(
+                gradient:AppData.DataFile["GNOMEUI"]?null: LinearGradient(
+                  colors: [
+                    ThemeDt.themeColors["fg"]!.withOpacity(0.3),
+                    ThemeDt.themeColors["fg"]!.withOpacity(0.01),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ) ,
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(borderRadius)),
+                  border: Border.all(
+                      width: 1.2,
+                      color: ThemeDt.themeColors["fg"]!.withOpacity(0.2))),
+              child: child),
+        ),
       );
     }
     return AnimatedContainer(
-
       width: width,
       height: height,
+      margin: EdgeInsets.all(mar ?? 0),
       padding: EdgeInsets.all(pad),
       duration: duration ?? ThemeDt.d,
       curve: curve ?? ThemeDt.c,
       decoration: BoxDecoration(
-          border: border?Border.all(
-            width: 1.5,
-            color: (ThemeDt.themeColors["fg"] ?? Colors.transparent).withOpacity(borderOpacity),
-          ):null,
+          border: border
+              ? Border.all(
+                  width: 1.5,
+                  color: (ThemeDt.themeColors["fg"] ?? Colors.transparent)
+                      .withOpacity(borderOpacity),
+                )
+              : null,
           color: ThemeDt.themeColors[colour],
-          borderRadius: BorderRadius.circular(borderRadius)
-      ),
+          borderRadius: BorderRadius.circular(borderRadius)),
       child: child,
     );
   }
-  Text getText(String s, {double? size,bool? center, bool? stylize, int? maxLines, String? color, FontWeight? fontWeight}){
+
+  Text getText(String s,
+      {double? size,
+      bool? center,
+      bool? stylize,
+      int? maxLines,
+      String? color,
+      FontWeight? fontWeight}) {
     stylize ??= false;
     center ??= false;
-    size ??= AppData.DataFile["MAXSIZE"] == true ? 15:13;
-    return Text(s, textAlign:(center)? TextAlign.center:null,maxLines: maxLines, overflow: TextOverflow.fade, style:stylize==true?
-    GoogleFonts.audiowide(
-      color: ThemeDt.themeColors[color ?? "fg"], fontSize: size,
-
-    ):
-    GoogleFonts.lexendDeca(
-      color: ThemeDt.themeColors[color ?? "fg"], fontSize: size,
-      fontWeight: fontWeight ?? (size>15? FontWeight.w200 : FontWeight.w300),
-
-    ),);
+    size ??= AppData.DataFile["MAXSIZE"] == true ? 15 : 13;
+    return Text(
+      s,
+      textAlign: (center) ? TextAlign.center : null,
+      maxLines: maxLines,
+      overflow: TextOverflow.fade,
+      style: AppData.DataFile["GNOMEUI"] == true
+          ? TextStyle(
+              fontFamily: sysFont,
+              fontWeight: fontWeight ?? FontWeight.normal,
+              fontSize: size,
+              color: ThemeDt.themeColors[color ?? "fg"],
+            )
+          : stylize == true
+              ? GoogleFonts.audiowide(
+                  color: ThemeDt.themeColors[color ?? "fg"],
+                  fontSize: size,
+                )
+              : GoogleFonts.lexendDeca(
+                  color: ThemeDt.themeColors[color ?? "fg"],
+                  fontSize: size,
+                  fontWeight: fontWeight ??
+                      (size > 15 ? FontWeight.w200 : FontWeight.w300),
+                ),
+    );
   }
-  void showMessage({required String title, required String message,  IconData? icon, Widget? child, required context}) {
-    icon ??= (title.toLowerCase()=="error")?Icons.error_rounded:(title.toLowerCase()=="warning")?Icons.warning_rounded:Icons.info_rounded;
-    child ??= GetButtons(onTap: (){
-      Navigator.pop(context);
-    }, text: "Close",);
+
+  void showMessage(
+      {required String title,
+      double height = 350,
+      required String message,
+      IconData? icon,
+      double? icoSize,
+      Widget? child,
+      bool? isDismisible,
+      required context}) {
+    icon ??= (title.toLowerCase() == "error")
+        ? Icons.error_rounded
+        : (title.toLowerCase() == "warning")
+            ? Icons.warning_rounded
+            : Icons.info_rounded;
+    child ??= GetButtons(
+      onTap: () {
+        Navigator.pop(context);
+      },
+      text: "Close",
+    );
     showDialog(
 
-      barrierColor: Colors.transparent,context: context,barrierDismissible: false, builder: (BuildContext context) {
-      var wdth = MediaQuery.sizeOf(context).width;
-      return  Center(
-        child: WidsManager().getContainer(
-          blur: true,
-          border: true,
-          pad: 20,
-          height: 300,
-          width: wdth>1200?wdth/2.5 : 1200/2.5,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Align(
-                  alignment: Alignment.center,
-                  child: WidsManager().getText(title, size: 27)),
-              Row(
+      barrierColor: Colors.transparent,
+      context: context,
+      barrierDismissible: isDismisible ?? false,
+      builder: (BuildContext context) {
+        var wdth = MediaQuery.sizeOf(context).width;
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: WidsManager().getContainer(
+              blur: true,
+              border: true,
+              pad: 20,
+              height: height,
+              width: wdth > 1200 ? wdth / 2.5 : 1200 / 2.5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(icon, color: ThemeDt.themeColors["fg"],size: 70,),
-                  const SizedBox(width: 20,),
-                  Expanded(
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        SizedBox(
-                            width: wdth>1200?wdth/3.8:1200/3.8,
-                            child: WidsManager().getText(message)),
-                      ],
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      WidsManager().getText(title, size: 27),
+                      if(isDismisible ?? false)GestureDetector(
+                          onTap: (){
+                            Navigator.pop(context);
+                          },
+                          child: Icon(Icons.cancel, color: ThemeDt.themeColors["fg"],size: 20,))
+                    ],
                   ),
+                  Row(
+                    children: [
+                      Icon(
+                        icon,
+                        color: ThemeDt.themeColors["fg"],
+                        size: icoSize ?? 70,
+                      ),
+                      const SizedBox(
+                        width: 20,
+                      ),
+                      Expanded(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            SizedBox(
+                                width: wdth > 1200 ? wdth / 3.8 : 1200 / 3.8,
+                                child: WidsManager().getText(message)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  child!
                 ],
               ),
-              child!
-            ],
+            ).animate(
+              effects: [
+                ScaleEffect(
+                  begin: const Offset(0.8,0.1),
+                  end: const Offset(1,1),
+                  duration: (ThemeDt.d.inMilliseconds+400).milliseconds,
+                  curve: Curves.easeOutExpo
+                ),
+                FadeEffect(
+                  delay: (ThemeDt.d.inMilliseconds-200).milliseconds,
+                  duration: ThemeDt.d
+                ),
+              ]
+            ),
           ),
-        ),
-      );
-
-    },);
+        );
+      },
+    );
   }
-  Tooltip getTooltip({child, String? text, Widget? widget}){
 
-    return  Tooltip(
-
-
+  Tooltip getTooltip({child, String? text, Widget? widget}) {
+    return Tooltip(
       richMessage: WidgetSpan(
           alignment: PlaceholderAlignment.baseline,
           baseline: TextBaseline.alphabetic,
-          child: BlurryContainer(
-            elevation: 20,
-            blur: 10,
-            borderRadius: const BorderRadius.all(
-                Radius.circular(10)),
-            color: ThemeDt.themeColors["sltbg"]!.withOpacity(0.16),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              constraints:
-              const BoxConstraints(maxWidth: 250),
-              child: widget ?? WidsManager().getText(text ?? "Tap here"),
+          child: Container(
+
+            decoration: AppData.DataFile["GNOMEUI"]?BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: ThemeDt.themeColors["altbg"],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                      offset: const Offset(0,6),
+                      blurRadius: 5
+                  )
+                ]
+            ):null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedBlurryContainer(
+               // delay: ThemeDt.d,
+              duration: Duration.zero,
+              blur: AppData.DataFile["GNOMEUI"]?0: null,
+              //  filter: AppData.DataFile["GNOMEUI"]?ImageFilter.blur():ImageFilter.blur(sigmaX: 30,sigmaY: 30),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  constraints: const BoxConstraints(maxWidth: 250),
+                  decoration:AppData.DataFile["GNOMEUI"]?null:  BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          ThemeDt.themeColors["fg"]!.withOpacity(0.2),
+                          ThemeDt.themeColors["bg"]!.withOpacity(0.0),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ) ,
+                      borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: ThemeDt.themeColors["fg"]!.withOpacity(0.1),
+                      width: 1.4
+                    )
+                  ),
+                  child: widget ?? WidsManager().getText(text ?? "Tap here"),
+                ),
+              ),
+            ).animate(
+              effects: AppData.DataFile["GNOMEUI"]?[]:[
+                SlideEffect(
+                  begin: const Offset(0,-0.05),
+                  end: const Offset(0,0),
+                  duration: ThemeDt.d,
+                  curve: ThemeDt.c
+                )
+              ]
             ),
           )),
       decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(
-            Radius.circular(5)),
+        borderRadius: BorderRadius.all(Radius.circular(5)),
       ),
       // margin: EdgeInsets.only(left: MediaQuery.sizeOf(context).width/(largeAlbum?2:1.5)),
-      child:child,
+      child: child,
     );
   }
-  static String wallPath="";
+
+  static String sysFont = "";
+  static double? sysFontSize;
+  Future<void> loadFontAndApply() async {
+    sysFont = (await Shell()
+            .run("gsettings get org.gnome.desktop.interface font-name"))
+        .outText;
+    await Future.delayed(1.seconds);
+    print(sysFont);
+    sysFont = sysFont.replaceAll(",", "");
+    sysFontSize = double.tryParse(
+        sysFont.substring(sysFont.lastIndexOf(" ") + 1, sysFont.length - 1));
+    sysFont = sysFont.substring(1, sysFont.lastIndexOf(" "));
+    print(sysFontSize);
+    print(sysFont);
+  }
+
+  Future<void> _launchUrl(url) async {
+    if (!await launchUrl(url)) {
+      print('Could not launch $url');
+    }
+  }
+
+  void showAboutPage(context, AnimationController controller) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Container(
+            child: Center(
+              child: getContainer(
+                borderRadius: 20,
+                colour: "bg",
+                height: 530,
+                width: 350,
+                child: Stack(
+                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: GestureDetector(
+                        onTap: () async {
+                          await controller
+                              .reverse()
+                              .then((value) => Navigator.pop(context));
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.all(13),
+                          height: 15,
+                          width: 15,
+                          decoration: BoxDecoration(
+                              color: Colors.red[300], shape: BoxShape.circle),
+                        ),
+                      ),
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Image.asset(
+                          "assets/iconfile.png",
+                          height: 130,
+                          width: 130,
+                        ),
+                        getText("Evolve",
+                            size: 27, fontWeight: FontWeight.w600),
+                        getText("NEX Opensource"),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        getContainer(
+                            border: true,
+                            borderOpacity: 0.2,
+                            child:
+                                getText("${AppData.vers}-${AppData.release}")),
+                        const SizedBox(
+                          height: 30,
+                        ),
+                        gtkColumn(
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                await _launchUrl(Uri.parse(
+                                    "https://www.patreon.com/arcnations"));
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  getText("Patreon"),
+                                  Icon(
+                                    Icons.open_in_new_rounded,
+                                    color: ThemeDt.themeColors["fg"],
+                                    size: 17,
+                                  )
+                                ],
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () async {
+                                await _launchUrl(Uri.parse(
+                                    "https://arcnations.wixsite.com/nex-apps"));
+                              },
+                              child: Container(
+                                color:
+                                    ThemeDt.themeColors["bg"]?.withOpacity(0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    getText("Website"),
+                                    Icon(
+                                      Icons.open_in_new_rounded,
+                                      color: ThemeDt.themeColors["fg"],
+                                      size: 17,
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ).animate(controller: controller, effects: [
+            ScaleEffect(
+                begin: const Offset(1, 0),
+                end: const Offset(1, 1),
+                curve: Curves.easeOut,
+                duration: 100.milliseconds)
+          ]),
+        );
+      },
+    );
+  }
+
+  static String wallPath = "";
+  Widget gtkColumn({required List<Widget> children, width, Column? title}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) title,
+        WidsManager().getContainer(
+            colour: "altbg",
+            borderOpacity: 0.2,
+            border: false,
+            pad: 0,
+            width: width,
+            child: Column(
+              children: [
+                for (Widget wid in children)
+                  Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: wid,
+                      ),
+                      Container(
+                        height: 1,
+                        color: ThemeDt.themeColors["bg"]?.withOpacity(0.9),
+                      ),
+                    ],
+                  )
+              ],
+            )),
+      ],
+    );
+  }
+
   Future<Widget> getWallpaperSample({String? wallPath}) async {
     wallPath ??= (await Shell().run("""
     gsettings get org.gnome.desktop.background picture-uri
     """)).outText.replaceAll("file://", "").replaceAll("'", "");
-    WidsManager.wallPath=wallPath;
-    File wp= File(wallPath);
-    if(await wp.exists()==false){
+    WidsManager.wallPath = wallPath;
+    File wp = File(wallPath);
+    if (await wp.exists() == false) {
       return Container(
-        decoration:BoxDecoration(
+        decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-          gradient: LinearGradient(
-            colors: [
+            gradient: LinearGradient(colors: [
               Colors.lightBlueAccent,
               Colors.lightBlue,
               Colors.blue[800]!,
-            ]
-          )
-        ),
+            ])),
       );
     }
     return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Stack(
           children: [
-            Image.file  (wp,width: double.infinity, height: double.infinity,fit: BoxFit.cover,),
+            Image.file(
+              wp,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+            ),
             Stack(
               children: [
-                Container(color: Colors.black, height: 25,),
+                Container(
+                  color: Colors.black,
+                  height: 25,
+                ),
                 Container(
                   margin: const EdgeInsets.only(top: 10, left: 10),
                   decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(100)
-                ), width: 25,
-                height: 8,),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100)),
+                  width: 25,
+                  height: 8,
+                ),
                 Container(
                   margin: const EdgeInsets.only(top: 10, left: 40),
                   decoration: const BoxDecoration(
-                  color: Colors.grey,
-                  shape: BoxShape.circle,
-                ), width: 8,
-                height: 8,),
+                    color: Colors.grey,
+                    shape: BoxShape.circle,
+                  ),
+                  width: 8,
+                  height: 8,
+                ),
               ],
             )
           ],
         ));
   }
 }
+class AnimatedBlurryContainer extends StatefulWidget {
+  final Widget child;
+  final Duration?  delay;
+  final double?  blur;
+  final Duration?  duration;
+  const AnimatedBlurryContainer({super.key, required this.child, this.delay, this.duration, this.blur});
+
+  @override
+  State<AnimatedBlurryContainer> createState() => _AnimatedBlurryContainerState();
+}
+
+class _AnimatedBlurryContainerState extends State<AnimatedBlurryContainer> with TickerProviderStateMixin{
+  late AnimationController cnt;
+Timer? t;
+  @override
+  void initState() {
+    // TODO: implement initState
+    cnt=AnimationController(vsync: this,duration: widget.duration ?? ThemeDt.d,);
+    setForward();
+    super.initState();
+  }
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    t?.cancel();
+    cnt.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: cnt,
+      builder: (BuildContext context, Widget? child) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(
+              sigmaY: cnt.value*(widget.blur ?? 5),
+              sigmaX: cnt.value*(widget.blur ?? 5),
+          ),
+        child: widget.child,
+        );
+      },
+
+    );
+  }
+
+  void setForward()async {
+  t=Timer(widget.delay ?? Duration.zero, () {
+    cnt.forward();
+  });
+  }
+}
+
 class TabButton extends StatefulWidget {
   final String text;
   final int Tab;
   final Function() state;
-  const TabButton({required this.text, super.key, required this.Tab, required this.state,});
+  const TabButton({
+    required this.text,
+    super.key,
+    required this.Tab,
+    required this.state,
+  });
 
   @override
   State<TabButton> createState() => _TabButtonState();
 }
+
 class _TabButtonState extends State<TabButton> {
-  bool hover=false;
+  bool hover = false;
 
   @override
   void initState() {
     // TODO: implement initState
-   // initiateTheme();
+    // initiateTheme();
     super.initState();
   }
-  initiateTheme()async{
-    await ThemeDt().setTheme();
-    setState(() {
 
-    });
+  initiateTheme() async {
+    await ThemeDt().setTheme();
+    setState(() {});
   }
+
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.sizeOf(context).width/5;
-    return  MouseRegion(
-      onEnter: (dt){
+    double width = 150;
+    return MouseRegion(
+      onEnter: (dt) {
         setState(() {
           hover = true;
         });
       },
-      onExit: (dt){
-
+      onExit: (dt) {
         setState(() {
           hover = false;
         });
       },
       child: GestureDetector(
-        onTap: (){
-          WidsManager.activeTab=widget.Tab;
+        onTap: () {
+
+          setState(() {
+            WidsManager.activeTab = widget.Tab;
+          });
           widget.state();
         },
-        child:  AnimatedContainer(
+        child: AnimatedContainer(
           width: width,
           decoration: BoxDecoration(
-              color: ThemeDt.themeColors[widget.Tab==WidsManager.activeTab?"rowSltBG":(hover)?"altbg":"bg"],
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(width: 2, color: (((AppData.DataFile["HCONTRAST"] ?? false) ? (widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null : ThemeDt.themeColors["rowSltBG"]==ThemeDt.themeColors["bg"]?((widget.Tab==WidsManager.activeTab)?ThemeDt.themeColors["fg"] :null):null) ?? Colors.transparent)),
+            color: ThemeDt.themeColors[widget.Tab == WidsManager.activeTab
+                ? "rowSltBG"
+                : (hover)
+                    ? "altbg"
+                    : "bg"],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+                width: 2,
+                color: (((AppData.DataFile["HCONTRAST"] ?? false)
+                        ? (widget.Tab == WidsManager.activeTab)
+                            ? ThemeDt.themeColors["fg"]
+                            : null
+                        : ThemeDt.themeColors["rowSltBG"] ==
+                                ThemeDt.themeColors["bg"]
+                            ? ((widget.Tab == WidsManager.activeTab)
+                                ? ThemeDt.themeColors["fg"]
+                                : null)
+                            : null) ??
+                    Colors.transparent)),
           ),
           duration: ThemeDt.d,
           curve: ThemeDt.c,
           padding: const EdgeInsets.all(10),
-          child: WidsManager().getText(widget.text,color: (widget.Tab==WidsManager.activeTab?"rowSltLabel":"fg"), fontWeight: widget.Tab==WidsManager.activeTab ? ThemeDt.boldText:FontWeight.w300),
+          child: WidsManager().getText(widget.text,
+              color:
+                  (widget.Tab == WidsManager.activeTab ? "rowSltLabel" : "fg"),
+              fontWeight: widget.Tab == WidsManager.activeTab
+                  ? ThemeDt.boldText
+                  : FontWeight.w300),
         ),
       ),
     );
   }
 }
 
-
 class GetButtons extends StatefulWidget {
   final Function() onTap;
-  final  child;
+  final child;
   final String? text;
   final bool? light;
+  final bool? small;
   final bool? pillShaped;
   final bool? ghost;
   final bool? moreResponsive;
   final double? ltVal;
-  const GetButtons({this.ltVal, this.child, this.text, this.ghost,  super.key, required this.onTap, this.light, this.moreResponsive, this.pillShaped});
+  const GetButtons(
+      {this.ltVal,
+      this.child,
+      this.text,
+      this.small,
+      this.ghost,
+      super.key,
+      required this.onTap,
+      this.light,
+      this.moreResponsive,
+      this.pillShaped});
 
   @override
   _GetButtonsState createState() => _GetButtonsState();
 }
-class _GetButtonsState extends State<GetButtons> {
 
-  bool hover=false;
-  bool tap=false;
+class _GetButtonsState extends State<GetButtons> {
+  bool hover = false;
+  bool tap = false;
   Timer? t;
   Timer? t1;
   @override
@@ -281,6 +692,7 @@ class _GetButtonsState extends State<GetButtons> {
 
     super.initState();
   }
+
   @override
   void dispose() {
     // TODO: implement dispose
@@ -290,64 +702,85 @@ class _GetButtonsState extends State<GetButtons> {
 
   @override
   Widget build(BuildContext context) {
-    Color? buttonCol = ThemeDt.themeColors[tap?"sltbg":(hover)?"altbg":"bg"];
-    return  MouseRegion(
-      onEnter: (dt){
+    Color? buttonCol = ThemeDt.themeColors[tap
+        ? "sltbg"
+        : (hover)
+            ? "altbg"
+            : "bg"];
+    return MouseRegion(
+      onEnter: (dt) {
         setState(() {
           hover = true;
         });
       },
-      onExit: (dt){
+      onExit: (dt) {
         t?.cancel();
-        t=Timer(const Duration(milliseconds: 200), () {
-          if(context.mounted) {
+        t = Timer(const Duration(milliseconds: 40), () {
+          if (context.mounted) {
             setState(() {
               hover = false;
             });
           }
         });
-
       },
       child: GestureDetector(
-        onTapDown: (dt){
+        onTapDown: (dt) {
           setState(() {
-            tap=true;
+            tap = true;
           });
-
-        },onTapUp: (dt){
-        widget.onTap();
-        t1?.cancel();
-        t1=Timer(const Duration(milliseconds: 200), () {
-          if(context.mounted) {
-            setState(() {
-              tap=false;
-            });
-          }
-        });
-
-
-
-      },
-        child:  AnimatedContainer(
-          // width: width,
-          decoration: BoxDecoration(
-              color: (widget.light ?? false)?
-              HSLColor.fromColor(buttonCol!).withLightness(
-                  HSLColor.fromColor(buttonCol).lightness*(widget.ltVal ?? 2)>1 ?1:HSLColor.fromColor(buttonCol).lightness*(widget.ltVal ?? 2)
-              ).toColor():
-              buttonCol,
-              borderRadius: BorderRadius.circular(widget.pillShaped??false?100:10),
-              border: Border.all(
-                width: 2,
-                color: (widget.ghost ?? false)?ThemeDt.themeColors["fg"]!:
-                ((tap)?ThemeDt.themeColors["fg"] :null) ?? Colors.transparent,
-              )
+        },
+        onTapUp: (dt) {
+          widget.onTap();
+          t1?.cancel();
+          t1 = Timer(const Duration(milliseconds: 200), () {
+            if (context.mounted) {
+              setState(() {
+                tap = false;
+              });
+            }
+          });
+        },
+        child: AnimatedScale(
+          duration: Duration.zero,
+          scale: widget.small ?? false ? 0.7 : 1,
+          child: AnimatedContainer(
+            // width: width,
+            decoration: BoxDecoration(
+                color: (widget.light ?? false)
+                    ? HSLColor.fromColor(buttonCol!)
+                        .withLightness(HSLColor.fromColor(buttonCol).lightness *
+                                    (widget.ltVal ?? 2) >
+                                1
+                            ? 1
+                            : HSLColor.fromColor(buttonCol).lightness *
+                                (widget.ltVal ?? 2))
+                        .toColor()
+                    : buttonCol,
+                borderRadius: BorderRadius.circular(
+                    widget.pillShaped ?? false ? 100 : 10),
+                border: Border.all(
+                  width: 2,
+                  color: (widget.ghost ?? false)
+                      ? ThemeDt.themeColors["fg"]!
+                      : ((tap) ? ThemeDt.themeColors["fg"] : null) ??
+                          Colors.transparent,
+                )),
+            duration: ThemeDt.d,
+            curve: ThemeDt.c,
+            padding: ((widget.moreResponsive ?? false)
+                ? EdgeInsets.all((hover) ? 10 : 15)
+                : widget.pillShaped ?? false
+                    ? const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10)
+                    : const EdgeInsets.all(8)),
+            margin: (widget.moreResponsive ?? false)
+                ? EdgeInsets.all((hover) ? 5 : 0)
+                : EdgeInsets.zero,
+            child: (widget.child == null)
+                ? WidsManager().getText(
+                    widget.text ?? "",
+                  )
+                : widget.child,
           ),
-          duration: ThemeDt.d,
-          curve: ThemeDt.c,
-          padding:(widget.moreResponsive ?? false)? EdgeInsets.all((hover)?10:15): widget.pillShaped ?? false ? EdgeInsets.only(left: 20,right: 20,top: 10,bottom: 10):EdgeInsets.all(8),
-          margin:(widget.moreResponsive ?? false)? EdgeInsets.all((hover)?5:0) : EdgeInsets.zero,
-          child: (widget.child==null)?WidsManager().getText(widget.text ?? "",):widget.child,
         ),
       ),
     );
@@ -362,114 +795,124 @@ class GetIcons extends StatefulWidget {
   @override
   State<GetIcons> createState() => _GetIconsState();
 }
+
 class _GetIconsState extends State<GetIcons> {
   bool corruptTheme = false;
-  List svgPaths=["","","","","",""];
+  List svgPaths = ["", "", "", "", "", ""];
   @override
   void initState() {
     // TODO: implement initState
     initateLocations();
     super.initState();
   }
-  initateLocations()async{
 
+  initateLocations() async {
     Directory Ico = Directory(widget.icoPackPath);
-    svgPaths[0]=await checkFile("org.gnome.files.svg");
-    if(svgPaths[0]=="NotFound") {
-      svgPaths[0]=await checkFile("org.gnome.Nautilus.svg");
-      if(svgPaths[0]=="NotFound") {
-        svgPaths[0]=await checkFile("org.gnome.Files.svg");
+    svgPaths[0] = await checkFile("org.gnome.files.svg");
+    if (svgPaths[0] == "NotFound") {
+      svgPaths[0] = await checkFile("org.gnome.Nautilus.svg");
+      if (svgPaths[0] == "NotFound") {
+        svgPaths[0] = await checkFile("org.gnome.Files.svg");
       }
     }
-    svgPaths[1]=await checkFile("gnome-settings.svg");
-    svgPaths[2]=await checkFile("org.gnome.weather.svg");
-    if(svgPaths[2]=="NotFound") {
-      svgPaths[2]=await checkFile("org.gnome.Weather.svg");
+    svgPaths[1] = await checkFile("gnome-settings.svg");
+    svgPaths[2] = await checkFile("org.gnome.weather.svg");
+    if (svgPaths[2] == "NotFound") {
+      svgPaths[2] = await checkFile("org.gnome.Weather.svg");
     }
-    svgPaths[3]=await checkFile("org.gnome.gedit.svg");
-    if(svgPaths[3]=="NotFound") {
-      svgPaths[3]=await checkFile("org.gnome.Gedit.svg");
+    svgPaths[3] = await checkFile("org.gnome.gedit.svg");
+    if (svgPaths[3] == "NotFound") {
+      svgPaths[3] = await checkFile("org.gnome.Gedit.svg");
     }
-    svgPaths[4]=await checkFile("org.gnome.totem.svg");
-    if(svgPaths[4]=="NotFound") {
-      svgPaths[4]=await checkFile("org.gnome.Totem.svg");
+    svgPaths[4] = await checkFile("org.gnome.totem.svg");
+    if (svgPaths[4] == "NotFound") {
+      svgPaths[4] = await checkFile("org.gnome.Totem.svg");
     }
-    svgPaths[5]=await checkFile("org.gnome.music.svg");
-    if(svgPaths[5]=="NotFound") {
-      svgPaths[5]=await checkFile("org.gnome.Music.svg");
+    svgPaths[5] = await checkFile("org.gnome.music.svg");
+    if (svgPaths[5] == "NotFound") {
+      svgPaths[5] = await checkFile("org.gnome.Music.svg");
     }
-    int nots=0;
+    int nots = 0;
     for (var element in svgPaths) {
-      if(element=="NotFound")nots++;
+      if (element == "NotFound") nots++;
     }
-    if(nots>=3) corruptTheme=true;
-    setState(() {
-
-    });
+    if (nots >= 3) corruptTheme = true;
+    setState(() {});
   }
-  checkFile(String svgFile)async{
-    String fle="${widget.icoPackPath}/apps/24/$svgFile";
-    String fle1="${widget.icoPackPath}/apps/scalable/$svgFile";
-    String fle2="${widget.icoPackPath}/24x24/apps/$svgFile";
-    String fle3="${widget.icoPackPath}/128x128/apps/$svgFile";
-    String fle4="${widget.icoPackPath}/64x64/apps/$svgFile";
+
+  checkFile(String svgFile) async {
+    String fle = "${widget.icoPackPath}/apps/24/$svgFile";
+    String fle1 = "${widget.icoPackPath}/apps/scalable/$svgFile";
+    String fle2 = "${widget.icoPackPath}/24x24/apps/$svgFile";
+    String fle3 = "${widget.icoPackPath}/128x128/apps/$svgFile";
+    String fle4 = "${widget.icoPackPath}/64x64/apps/$svgFile";
     File f = File(fle);
     File f1 = File(fle1);
     File f2 = File(fle2);
     File f3 = File(fle3);
     File f4 = File(fle4);
-    if(await f.exists()){
+    if (await f.exists()) {
       return fle;
-    }
-    else if(await f1.exists()){
+    } else if (await f1.exists()) {
       return fle1;
-    }
-    else if(await f2.exists()){
+    } else if (await f2.exists()) {
       return fle2;
-    }else if(await f3.exists()){
+    } else if (await f3.exists()) {
       return fle3;
-    }else if(await f4.exists()){
+    } else if (await f4.exists()) {
       return fle4;
-    }
-    else {
+    } else {
       return "NotFound";
     }
   }
-  double wd=50;
-  double ht=50;
+
+  double wd = 50;
+  double ht = 50;
 
   @override
   Widget build(BuildContext context) {
-    wd =(MediaQuery.sizeOf(context).width+MediaQuery.sizeOf(context).height)/50;
-    ht=wd;
+    wd =
+        (MediaQuery.sizeOf(context).width + MediaQuery.sizeOf(context).height) /
+            50;
+    ht = wd;
 
     return GetButtons(
       moreResponsive: true,
-      ghost: ThemeDt.IconName==widget.icoPackPath.split("/").last,
-      light: true,ltVal: 2,
+      ghost: ThemeDt.IconName == widget.icoPackPath.split("/").last,
+      light: true,
+      ltVal: 2,
       onTap: () {
-        if(corruptTheme){
+        if (corruptTheme) {
           WidsManager().showMessage(
               context: context,
-              title : "Warning",
-              message : "The icon pack you are trying to apply may be corrupted. Some system icons may not show after applying.",
-              icon : Icons.warning_rounded,
-              child : Row(
+              title: "Warning",
+              message:
+                  "The icon pack you are trying to apply may be corrupted. Some system icons may not show after applying.",
+              icon: Icons.warning_rounded,
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  GetButtons(light:true,onTap: (){
-                    Navigator.pop(context);
-                  }, text: "Cancel",),
-                  const SizedBox(width: 10,),
-                  GetButtons(light:true,onTap: (){
-                    applyIcon();
-                    Navigator.pop(context);
-                  }, text: "Apply",),
+                  GetButtons(
+                    light: true,
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    text: "Cancel",
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  GetButtons(
+                    light: true,
+                    onTap: () {
+                      applyIcon();
+                      Navigator.pop(context);
+                    },
+                    text: "Apply",
+                  ),
                 ],
-              )
-          );
-        }
-        else{
+              ));
+        } else {
           applyIcon();
         }
       },
@@ -477,32 +920,35 @@ class _GetIconsState extends State<GetIcons> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if(corruptTheme) WidsManager().getText("Icon-pack may be corrupt.", size: 15),
-          if(!corruptTheme)  Expanded(child: GridView.builder(
-            itemCount: 6,
-            gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 5,
-                mainAxisSpacing: 5
-            ),
-            itemBuilder: (BuildContext context, int index) {
-              if(svgPaths[index]=="NotFound"){
-                return Icon(Icons.error, size: wd, color: ThemeDt.themeColors["fg"],);
-              } else{
-                return AnimatedOpacity(
-                    duration: ThemeDt.d,
-                    opacity: svgPaths[index]==""?0.0:1.0,
-                    child: svgPaths[index]==""?Container():SvgPicture.file(
-                      File(svgPaths[index]),width: MediaQuery.sizeOf(context).width/10,
-                    ));
-              }
-
-            },
-          )),
+          if (corruptTheme)
+            WidsManager().getText("Icon-pack may be corrupt.", size: 15),
+          if (!corruptTheme)
+            Expanded(
+                child: GridView.builder(
+              itemCount: 6,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3, crossAxisSpacing: 5, mainAxisSpacing: 5),
+              itemBuilder: (BuildContext context, int index) {
+                if (svgPaths[index] == "NotFound") {
+                  return Icon(
+                    Icons.error,
+                    size: wd,
+                    color: ThemeDt.themeColors["fg"],
+                  );
+                } else {
+                  return AnimatedOpacity(
+                      duration: ThemeDt.d,
+                      opacity: svgPaths[index] == "" ? 0.0 : 1.0,
+                      child: svgPaths[index] == ""
+                          ? Container()
+                          : SvgPicture.file(
+                              File(svgPaths[index]),
+                              width: MediaQuery.sizeOf(context).width / 10,
+                            ));
+                }
+              },
+            )),
           WidsManager().getText(widget.icoPackPath.split("/").last, size: 10),
-
-
         ],
       ),
     );
@@ -511,8 +957,7 @@ class _GetIconsState extends State<GetIcons> {
   void applyIcon() {
     widget.state();
     ThemeDt().setIcon(packName: widget.icoPackPath.split("/").last);
-    ThemeDt.IconName=widget.icoPackPath.split("/").last;
-
+    ThemeDt.IconName = widget.icoPackPath.split("/").last;
   }
 }
 
@@ -522,30 +967,46 @@ class GetTextBox extends StatefulWidget {
   final double? height;
   final String? hintText;
   final String? initText;
-  const GetTextBox({super.key, this.onDone, this.height, this.width, this.hintText, this.initText});
+  final bool? isSensitive;
+  const GetTextBox(
+      {super.key,
+      this.isSensitive,
+      this.onDone,
+      this.height,
+      this.width,
+      this.hintText,
+      this.initText});
 
   @override
   State<GetTextBox> createState() => _GetTextBoxState();
 }
+
 class _GetTextBoxState extends State<GetTextBox> {
   late TextEditingController tx;
   @override
   void initState() {
     // TODO: implement initState
-    tx=TextEditingController();
-    tx.text=widget.initText ?? "";
+    tx = TextEditingController();
+    tx.text = widget.initText ?? "";
     super.initState();
   }
+
   @override
   void dispose() {
     // TODO: implement dispose
     tx.dispose();
     super.dispose();
   }
-  bool tapped=true;
+
+  bool tapped = true;
   @override
   Widget build(BuildContext context) {
     return WidsManager().getContainer(
+        pad: widget.height != null
+            ? widget.height! < 70
+                ? 0
+                : null
+            : null,
         border: tapped,
         width: widget.width,
         height: widget.height,
@@ -553,9 +1014,9 @@ class _GetTextBoxState extends State<GetTextBox> {
           children: [
             Expanded(
               child: TextField(
-                onChanged: (tx){
-                  setState(() {
-                  });
+                obscureText: widget.isSensitive ?? false,
+                onChanged: (tx) {
+                  setState(() {});
                 },
                 cursorColor: ThemeDt.themeColors["fg"],
                 controller: tx,
@@ -564,32 +1025,47 @@ class _GetTextBoxState extends State<GetTextBox> {
                     hintText: widget.hintText,
                     hintStyle: WidsManager().getText("s").style,
                     border: const OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        gapPadding: 0
-                    )
-                ),
+                        borderSide: BorderSide.none, gapPadding: 0)),
               ),
             ),
-            if(tx.text!="")GetButtons(light: true,onTap: (){
-              setState(() {
-                tx.text="";
-              });
-            }, child: Icon(Icons.close_rounded, color: ThemeDt.themeColors["fg"],),),
-            const SizedBox(width: 10,),
-            if(tx.text!="")GetButtons(light: true,onTap: (){
-              widget.onDone(tx.text);
-            }, child: Icon(Icons.check_rounded, color: ThemeDt.themeColors["fg"],),)
+            if (tx.text != "")
+              GetButtons(
+                small: ((widget.height ?? 80) < 70),
+                light: true,
+                onTap: () {
+                  setState(() {
+                    tx.text = "";
+                  });
+                },
+                child: Icon(
+                  Icons.close_rounded,
+                  color: ThemeDt.themeColors["fg"],
+                ),
+              ),
+            SizedBox(
+              width: ((widget.height ?? 80) < 70) ? 0 : 10,
+            ),
+            if (tx.text != "")
+              GetButtons(
+                small: ((widget.height ?? 80) < 70),
+                light: true,
+                onTap: () {
+                  widget.onDone(tx.text);
+                },
+                child: Icon(
+                  Icons.check_rounded,
+                  color: ThemeDt.themeColors["fg"],
+                ),
+              )
           ],
-        )
-    );
+        ));
   }
 }
-
 
 class GetToggleButton extends StatefulWidget {
   bool value;
   final Function onTap;
-  GetToggleButton({required this.value, required this.onTap,super.key});
+  GetToggleButton({required this.value, required this.onTap, super.key});
 
   @override
   State<GetToggleButton> createState() => _GetToggleButtonState();
@@ -598,30 +1074,29 @@ class GetToggleButton extends StatefulWidget {
 class _GetToggleButtonState extends State<GetToggleButton> {
   @override
   Widget build(BuildContext context) {
-
-    return  GestureDetector(
-      onTap: (){
+    return GestureDetector(
+      onTap: () {
         widget.onTap();
       },
       child: Stack(
         children: [
           WidsManager().getContainer(
-           // curve: Curves.ease,
-            duration: 600.milliseconds,
-            width: 43,
+              // curve: Curves.ease,
+              duration: 600.milliseconds,
+              width: 43,
               height: 23,
               borderRadius: 100,
               border: true,
-            colour: widget.value?"fg":"bg"
-          ),
-          AnimatedContainer(duration: ThemeDt.d, curve: ThemeDt.c,
+              colour: widget.value ? "fg" : "bg"),
+          AnimatedContainer(
+            duration: ThemeDt.d,
+            curve: ThemeDt.c,
             width: 16,
             height: 16,
-            margin: EdgeInsets.only(left: widget.value?23:4, top: 3.4),
+            margin: EdgeInsets.only(left: widget.value ? 23 : 4, top: 3.4),
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: ThemeDt.themeColors[!widget.value?"fg":"bg"]
-            ),
+                shape: BoxShape.circle,
+                color: ThemeDt.themeColors[!widget.value ? "fg" : "bg"]),
           )
         ],
       ),
@@ -629,3 +1104,55 @@ class _GetToggleButtonState extends State<GetToggleButton> {
   }
 }
 
+class GetPopMenuButton extends StatefulWidget {
+  final Widget widgetOnTap;
+  final Widget child;
+  final String? tooltip;
+
+  const GetPopMenuButton({super.key, required this.widgetOnTap, this.tooltip, required this.child});
+
+  @override
+  State<GetPopMenuButton> createState() => _GetPopMenuButtonState();
+}
+
+class _GetPopMenuButtonState extends State<GetPopMenuButton> {
+  @override
+  Widget build(BuildContext context) {
+    return WidsManager().getTooltip(
+        text: widget.tooltip ?? "Show Menu",
+        child: PopupMenuButton(
+          tooltip: "",
+          popUpAnimationStyle: AnimationStyle(duration: Duration.zero),
+          color: Colors.transparent,
+          elevation: 0,
+          enableFeedback: false,
+          itemBuilder: (
+            BuildContext context,
+          ) {
+            return [
+              PopupMenuItem(
+                  enabled: false,
+                  child: StatefulBuilder(builder: (BuildContext context,
+                      void Function(void Function()) setState) {
+                    return WidsManager()
+                        .getContainer(
+                      mar: 5,
+                      // height: 400 ,
+
+                      blur: true,
+                      width: 800,
+                      child: widget.widgetOnTap,
+                    )
+                        .animate(effects: [
+                      ScaleEffect(
+                          alignment: Alignment.topRight,
+                          duration: ThemeDt.d,
+                          curve: ThemeDt.c)
+                    ]);
+                  }))
+            ];
+          },
+          child: widget.child,
+        ));
+  }
+}

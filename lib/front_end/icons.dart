@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gtkthememanager/theme_manager/tab_manage.dart';
 import '../back_end/gtk_theme_manager.dart';
 import '../theme_manager/gtk_to_theme.dart';
 import '../theme_manager/gtk_widgets.dart';
@@ -91,14 +92,23 @@ class _IconPickerState extends State<IconPicker> {
           const SizedBox(
             height: 10,
           ),
-          WidsManager().getText("Icons", fontWeight: ThemeDt.boldText),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              WidsManager().getText("Icons", fontWeight: ThemeDt.boldText),
+              IconButton(icon: Icon(Icons.undo_rounded, color: ThemeDt.themeColors["fg"],), onPressed: () {
+                ThemeDt().setIcon(packName: "Adwaita");
+                widget.state();
+              },)
+            ],
+          ),
           const SizedBox(
             height: 10,
           ),
           Expanded(
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: (MediaQuery.sizeOf(context).width/200).floor(),
+                  crossAxisCount: (MediaQuery.sizeOf(context).width/(TabManager.isLargeScreen?200:150)).floor(),
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10
               ),

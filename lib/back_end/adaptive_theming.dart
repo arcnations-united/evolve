@@ -415,6 +415,10 @@ class AdaptiveTheming {
     } //ADAPT SHELL COLOURS
     try{
       File shell = File("${themeFolder.path}/gnome-shell/gnome-shell.css");
+      File shell_new = File("${themeFolder.path}/gnome-shell/gnome-shell.css-new");
+      if(await shell_new.exists()){
+        await shell_new.delete();
+      }
      await updateColours(path: shell.path, active: active);
      await ThemeDt().setShell("Adwaita",);
       await ThemeDt().setShell(themeFolder.path.split("/").last,);

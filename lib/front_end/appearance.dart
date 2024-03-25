@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:blurrycontainer/blurrycontainer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gtkthememanager/back_end/app_data.dart';
 import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
 import 'package:gtkthememanager/front_end/edit_colours.dart';
@@ -10,6 +10,7 @@ import 'package:gtkthememanager/front_end/new_theme.dart';
 import 'package:gtkthememanager/theme_manager/atplus_themes.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
+import 'package:gtkthememanager/theme_manager/tab_manage.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:process_run/process_run.dart';
 
@@ -218,7 +219,13 @@ bool largeAlbum=false;
                         duration: ThemeDt.d,
                         curve: ThemeDt.c,
                         width:(largeAlbum)?100: MediaQuery.sizeOf(context).width / 3,
-                        child: wall),
+                        child: wall).animate(
+                      effects: [
+                        FadeEffect(
+                          delay: 100.milliseconds
+                        )
+                      ]
+                    ),
                   ),
                 ),
                 const SizedBox(
@@ -298,9 +305,9 @@ bool largeAlbum=false;
                                             : Expanded(
                                                 child: GridView.builder(
                                                 gridDelegate:
-                                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                                        childAspectRatio: 1.3,
-                                                        crossAxisCount: 3,
+                                                     SliverGridDelegateWithFixedCrossAxisCount(
+                                                        childAspectRatio: TabManager.isLargeScreen?1.3:2,
+                                                        crossAxisCount: TabManager.isSuperLarge?(MediaQuery.sizeOf(context).width/250).floor():TabManager.isLargeScreen?3:1,
                                                         crossAxisSpacing: 8,
                                                         mainAxisSpacing: 8),
                                                 itemCount: wallList.length,
@@ -336,7 +343,14 @@ bool largeAlbum=false;
                                                               double.infinity,
                                                           fit: BoxFit.cover,
                                                         ),
-                                                      ));
+                                                      )).animate(
+                                                    effects: [
+                                                      FadeEffect(
+                                                          delay: 100.milliseconds
+
+                                                      ),
+                                                    ]
+                                                  );
                                                 },
                                               ))
                                       ],
@@ -379,6 +393,7 @@ bool largeAlbum=false;
                                                                   200)
                                                               .floor(),
                                                       crossAxisSpacing: 8,
+                                                      childAspectRatio: largeAlbum?1:2,
                                                       mainAxisSpacing: 8),
                                               shrinkWrap: true,
                                               itemCount:
@@ -472,7 +487,8 @@ widget: Column(
                                                         index,
                                                     child: Container(
                                                       height: 100,
-                                                      decoration: BoxDecoration(
+                                                      decoration:
+                                                    largeAlbum?  BoxDecoration(
                                                           borderRadius:
                                                               BorderRadius
                                                                   .circular(10),
@@ -482,7 +498,7 @@ widget: Column(
                                                                 MediaQuery.sizeOf(
                                                                             context)
                                                                         .width /
-                                                                   ((largeAlbum)?600: 400),
+                                                                   ( 300),
                                                             colors: [
                                                               Colors.white,
                                                               Color(
@@ -496,13 +512,31 @@ widget: Column(
                                                             ],
                                                             center: Alignment
                                                                 .topRight,
-                                                          )),child: (largeAlbum)? Center(
+                                                          )):null,
+                                                      child: (largeAlbum)? Center(
                                                             child: Padding(
                                                               padding: const EdgeInsets.all(8.0),
                                                               child:
                                                          WidsManager().getContainer(
                                                              child: WidsManager().getText(PThemes.themeMap.values.elementAt(index)["NAME"])),),
-                                                          ) :null,
+                                                          ) : Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: <Widget>[
+                                                          Container(
+                                                            height: 20,
+                                                            width: 20,
+                                                            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR1"]),
+                                                          ), Container(
+                                                            height: 20,
+                                                            width: 20,
+                                                            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR2"]),
+                                                          ),Container(
+                                                            height: 20,
+                                                            width: 20,
+                                                            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR3"]),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ),
                                                 );
@@ -518,15 +552,16 @@ widget: Column(
                           autoplay: PThemes.themeMap.isNotEmpty? AppData.DataFile["AUTOPLAY"] ?? true : false,
                         ),
                       ),
-                      const SizedBox(
+                      if((!globalAppliedThemePath.startsWith("/usr/"))&&ThemeManager.GTKThemeList.contains(globalAppliedThemePath))    const SizedBox(
                         height: 10,
                       ),
-                      WidsManager().getTooltip(
+                   if((!globalAppliedThemePath.startsWith("/usr/"))&&ThemeManager.GTKThemeList.contains(globalAppliedThemePath))   WidsManager().getTooltip(
                         text:
                             "Use Background image colours in applied GTK Theme.",
 
                         child: GestureDetector(
-                          onTap: () async { String fle="";
+                          onTap: () async {
+                            String fle="";
                             //change path to adaptive before entering
                             if(!ThemeDt.GTK3.endsWith("-Adaptive")){
                               fle="${SystemInfo.home}/.themes/${ThemeDt.GTK3}-Adaptive/gtk-3.0/${(isDark) ? "gtk-dark.css" : "gtk.css"}";
@@ -561,55 +596,66 @@ widget: Column(
                                 child: WidsManager().getContainer(blur:true,  child: WidsManager().getText("Toggle adaptive mode")),
                               onTap: () async {
 
-                                        if (AppData
-                                                .DataFile["AUTOTHEMECOLOR"] ==
-                                            null) {
-                                          AppData.DataFile["AUTOTHEMECOLOR"] =
-                                              3;
-                                          await setAdaptiveTheme();
-                                        } else {
-                                          AppData.DataFile.remove(
-                                              "AUTOTHEMECOLOR");
-                                          String normalThemeName =
-                                              globalAppliedThemePath
-                                                  .split("/")
-                                                  .last;
-                                          normalThemeName =
-                                              normalThemeName.substring(
-                                                  0,
-                                                  normalThemeName
-                                                      .lastIndexOf("-"));
-                                          await ThemeDt().setGTK3(
-                                              normalThemeName, context);
-                                          await ThemeDt().setShell(
-                                              normalThemeName, context);
-                                          String themePath =
-                                              globalAppliedThemePath;
-                                          themePath = themePath.substring(
-                                              0, themePath.lastIndexOf("/"));
-                                          themePath =
-                                              "$themePath/$normalThemeName";
-                                          await ThemeDt()
-                                              .setGTK4(themePath, context);
-                                          globalAppliedThemePath =
-                                              await ThemeDt().getGTKThemePath();
-                                          ThemeDt.isThemeFolderMade =
-                                              await ThemeManager()
-                                                  .populateThemeList();
-                                          globalAppliedTheme =
-                                              globalAppliedThemePath
-                                                  .split("/")
-                                                  .last;
-                                          await ThemeDt()
-                                              .setTheme(respectSystem: true);
-                                          widget.state();
-                                        }
-                                        AppData().writeDataFile();
+                                        try {
+                                          if (AppData
+                                                  .DataFile["AUTOTHEMECOLOR"] ==
+                                              null) {
+                                            AppData.DataFile["AUTOTHEMECOLOR"] =
+                                                3;
+                                            await setAdaptiveTheme();
+                                          } else {
+                                            AppData.DataFile.remove(
+                                                "AUTOTHEMECOLOR");
+                                            String normalThemeName =
+                                                globalAppliedThemePath
+                                                    .split("/")
+                                                    .last;
+                                            normalThemeName =
+                                                normalThemeName.substring(
+                                                    0,
+                                                    normalThemeName
+                                                        .lastIndexOf("-"));
+                                            await ThemeDt().setGTK3(
+                                                normalThemeName, context);
+                                            await ThemeDt().setShell(
+                                                normalThemeName, context);
+                                            String themePath =
+                                                globalAppliedThemePath;
+                                            themePath = themePath.substring(
+                                                0, themePath.lastIndexOf("/"));
+                                            themePath =
+                                                "$themePath/$normalThemeName";
+                                            await ThemeDt()
+                                                .setGTK4(themePath, context);
+                                            globalAppliedThemePath =
+                                                await ThemeDt().getGTKThemePath();
+                                            ThemeDt.isThemeFolderMade =
+                                                await ThemeManager()
+                                                    .populateThemeList();
+                                            globalAppliedTheme =
+                                                globalAppliedThemePath
+                                                    .split("/")
+                                                    .last;
+                                            await ThemeDt()
+                                                .setTheme(respectSystem: true);
+                                            widget.state();
+                                          }
+                                          AppData().writeDataFile();
 
-                                      widget.state();
+                                                                                widget.state();
+                                        } catch (e) {
+                                          Navigator.pop(context);
+                                          setState(() {
+                                            settingColour=false;
+                                            AppData.DataFile["AUTOTHEMECOLOR"]=null;
+                                          });
+                                          WidsManager().showMessage(title: "Error", message: e.toString(), context: context);
+                                        }
                               },
                             )
-                           ], position: RelativeRect.fromLTRB(MediaQuery.sizeOf(context).width, MediaQuery.sizeOf(context).height/4, 0, 0));
+                           ],
+                               position: RelativeRect.fromLTRB(MediaQuery.sizeOf(context).width,
+                                   MediaQuery.sizeOf(context).height/4, 0, 0));
                           },
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
@@ -872,31 +918,46 @@ widget: Column(
                             if (checkGlobal(ThemeManager.GTKThemeList[i]))
                            Padding(
                              padding: const EdgeInsets.all( 4.0),
-                             child: GestureDetector(
-                                                          onTap: () async {
+                             child: GestureDetector( onTap: () async {
                              Navigator.pop(context);
                              ThemeDt.ThemeNamePath =
                                  ThemeManager.GTKThemeList[i];
                              await ThemeDt().setTheme(
                                  respectSystem: false, dark: isDark);
                              AppData.DataFile.remove("AUTOTHEMECOLOR");
-                             widget.state();
-                                                          },
+                             widget.state();},
                                                           child: WidsManager().getText(
                                ThemeManager.GTKThemeList[i]
                                    .split("/")
                                    .last,
                                color: "fg"),
                                                         ),
-                           ),]
+                           ),
+                           Padding(
+                             padding: const EdgeInsets.all( 4.0),
+                             child: GestureDetector(
+                             onTap: () async {
+                             Navigator.pop(context);
+                             ThemeDt.ThemeNamePath="default";
+                             await ThemeDt().setTheme(respectSystem: false, dark: isDark);
+                             AppData.DataFile.remove("AUTOTHEMECOLOR");
+                             widget.state();
+                                                          },
+                                                          child: WidsManager().getText(
+                              "Adwaita",
+                               color: "fg"),
+                                                        ),
+                           ),
+
+                            ]
                           ),
                         ),
                         )];
                     },
                     child: WidsManager().getContainer(
-                        width: ThemeDt.ThemeNamePath != globalAppliedThemePath
+                        width: (ThemeDt.ThemeNamePath != globalAppliedThemePath
                             ? MediaQuery.sizeOf(context).width / 3 - 53
-                            : MediaQuery.sizeOf(context).width / 3,
+                            : MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
                         child: WidsManager().getText(
                             ThemeDt.ThemeNamePath.split("/").last,
                             maxLines: 1)),
@@ -937,12 +998,18 @@ widget: Column(
                   if (ThemeDt.ThemeNamePath != globalAppliedThemePath)
                     GetButtons(
                       onTap: () async {
-                        globalAppliedTheme =
-                            ThemeDt.ThemeNamePath.split("/").last;
+                      if(ThemeDt.ThemeNamePath=="default") {
+                        globalAppliedTheme="default";
+                      }else{
+                          globalAppliedTheme =
+                              ThemeDt.ThemeNamePath.split("/").last;
+                        }
                         globalAppliedThemePath = ThemeDt.ThemeNamePath;
+                      if(AppData.DataFile["FLATPAK"]==true){
+                        await ThemeDt().setFlatpakTheme(globalAppliedThemePath, context);
+                      }
                         await ThemeDt().setGTK3(globalAppliedTheme, context);
-                        await ThemeDt()
-                            .setGTK4(globalAppliedThemePath, context);
+                        await ThemeDt().setGTK4(globalAppliedThemePath, context);
                         await ThemeDt().setShell(globalAppliedTheme, context);
                         widget.state();
                       },
@@ -1012,7 +1079,7 @@ widget: Column(
                         )];
                     },
                     child: WidsManager().getContainer(
-                        width: MediaQuery.sizeOf(context).width / 3,
+                        width: (MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
                         child:
                         WidsManager().getText(ThemeDt.GTK3, maxLines: 1)),
                   ),
@@ -1103,7 +1170,7 @@ widget: Column(
                         )];
                     },
                     child: WidsManager().getContainer(
-                        width: MediaQuery.sizeOf(context).width / 3,
+                        width:( MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
                         child: WidsManager().getText(
                             ThemeDt.GTK4 ?? "Not Applied",
                             maxLines: 1))),
@@ -1196,7 +1263,7 @@ widget: Column(
                           )];
                       },
                       child:  WidsManager().getContainer(
-                          width: MediaQuery.sizeOf(context).width / 3,
+                          width: (MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
                           child: WidsManager()
                               .getText(ThemeDt.ShellName, maxLines: 1)),
                   ),
@@ -1266,7 +1333,7 @@ widget: Column(
                             color: ThemeDt
                                 .themeColors[(!isDark) ? "altbg" : "sltbg"]),
                         child: WidsManager()
-                            .getText("Dark", color: (isDark ? "bg" : "fg")),
+                            .getText("Dark", color: "fg"),
                       ),
                       Container(
                         padding: const EdgeInsets.all(10),
@@ -1278,7 +1345,7 @@ widget: Column(
                             color: ThemeDt
                                 .themeColors[(isDark) ? "altbg" : "sltbg"]),
                         child: WidsManager()
-                            .getText("Light", color: (isDark ? "fg" : "bg")),
+                            .getText("Light", color: "fg",),
                       ),
                     ],
                   ),
@@ -1295,11 +1362,11 @@ widget: Column(
 
      if(AppData.DataFile["AUTOTHEMECOLOR"]!=null){
        showDialog(context: context,barrierColor: Colors.transparent, builder: (BuildContext context) {
-         return BlurryContainer(
-           blur: 5,elevation: 0,
+         return AnimatedBlurryContainer(
+           blur: 15,
            child: Center(
              child: WidsManager().getText("Applying Background Colour...", size: 20),
-           ), borderRadius: BorderRadius.zero,);
+           ),);
        }, );
        setState(() {
        settingColour=true;

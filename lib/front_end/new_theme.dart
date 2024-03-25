@@ -4,6 +4,7 @@ import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
 import 'package:process_run/process_run.dart';
 import '../back_end/gtk_theme_manager.dart';
+import 'advanced_theme_maker.dart';
 
 //Lets you create new themes
 //tooltip styles aren't updated yet
@@ -263,13 +264,23 @@ class _NewThemeState extends State<NewTheme> {
               ),
               const SizedBox(height: 10,),
 
-              Align(
-                  alignment: Alignment.bottomRight ,
-                  child: GetButtons(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GetButtons(
+                    onTap: ()async{
+                      await generateTheme();
+                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>AdvancedThemeMaker(newThemePath: "${SystemInfo.home}/.themes/$name", originalThemePath: modOf,)));
+                    },
+                    text: "Advanced Mode", light: true,),
+                  const SizedBox(width: 10,),
+                  GetButtons(
                     onTap: ()async{
                       await generateTheme();
                     },
-                    text: "Create Theme", ghost: true,))
+                    text: "Create Theme", light: true, ghost: true,),
+                ],
+              ),
             ],
           ),
         ),
