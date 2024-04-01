@@ -320,16 +320,16 @@ class _InstallerState extends State<Installer> {
         if(!(await thms.exists())){
           await thms.create(recursive: true);
         }
-        await Shell().run("""cp -r ${dirList[index].path} ${thms.path}""");
+        await Shell().run("""cp -r '${dirList[index].path}' '${thms.path}'""");
       }
       else if(isTheme[index]==2){
         if(!(await ico.exists())){
           await ico.create(recursive: true);
         }
-        await Shell().run("""cp -r ${dirList[index].path} ${ico.path}""");
+        await Shell().run("""cp -r '${dirList[index].path}' '${ico.path}'""");
       }
 
-        WidsManager().showMessage(title: "Success!", message: "Installed Successfully. Please restart the app for everything to function normally", context: context);
+        WidsManager().showMessage(title: "Success!", message: "Installed Successfully. Please restart the app for everything to function normally. Remember, icon themes often depend on other icon-packs, install all of them under one pack to avoid corruption.", context: context);
     } catch (e) {
 
         WidsManager().showMessage(title: "Error", message: "Installation was unsuccessful", context: context);

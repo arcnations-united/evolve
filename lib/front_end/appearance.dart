@@ -1314,41 +1314,13 @@ widget: Column(
 
                 text:
                     "This does not relate to system-wide dark or light mode. This simply means which css file the app would use to theme its colour - gtk.css or gtk-dark.css",
-                child: GestureDetector(
+                child: GetToggleButton(value: isDark,
                   onTap: () async {
                     isDark = !isDark;
                     await ThemeDt()
                         .setTheme(respectSystem: false, dark: isDark);
                     widget.state();
                   },
-                  child: Row(
-                    children: <Widget>[
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(10),
-                              bottomLeft: Radius.circular(10),
-                            ),
-                            color: ThemeDt
-                                .themeColors[(!isDark) ? "altbg" : "sltbg"]),
-                        child: WidsManager()
-                            .getText("Dark", color: "fg"),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(10),
-                              bottomRight: Radius.circular(10),
-                            ),
-                            color: ThemeDt
-                                .themeColors[(isDark) ? "altbg" : "sltbg"]),
-                        child: WidsManager()
-                            .getText("Light", color: "fg",),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ],

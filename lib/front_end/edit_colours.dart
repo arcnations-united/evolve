@@ -92,7 +92,7 @@ class _ChangeColorsState extends State<ChangeColors> {
 
     setState(() {});
   }
-
+  bool isUpdatingState=false;
   bool filterUse = false;
   double? hue, sat, val;
   bool showColorHex = false;
@@ -648,151 +648,176 @@ class _ChangeColorsState extends State<ChangeColors> {
                     const SizedBox(width: 10,),
                     GetPopMenuButton(
                       tooltip: "HSV Adjustments",
-                      widgetOnTap: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          GetTextBox(
-                            hintText: "Hue Factor",
-                            height: 50,
-                            onDone: (dt) async {
-                              if (double.tryParse(dt) == null ||
-                                  double.tryParse(dt)! >= 2.0 ||
-                                  double.tryParse(dt)! <= 0.0) {
-                                WidsManager().showMessage(
-                                    title: "Error",
-                                    message:
-                                        "The value must be a floating number and between 0.0 - 1.0",
-                                    context: context);
-                              } else {
-                                if(!filterUse) {
-                                  editedIndex.clear();
-                                }
+                      widgetOnTap: AnimatedCrossFade(
+                        duration: ThemeDt.d,
+                        crossFadeState: isUpdatingState?CrossFadeState.showSecond:CrossFadeState.showFirst,
+                        secondChild: Container(),
+                        firstChild: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            GetTextBox(
+                              hintText: "Hue Factor",
+                              height: 50,
+                              onDone: (dt) async {
+                            Navigator.pop(context);
+                             print(isUpdatingState);
+                                if (double.tryParse(dt) == null ||
+                                    double.tryParse(dt)! >= 2.0 ||
+                                    double.tryParse(dt)! <= 0.0) {
+                                  WidsManager().showMessage(
+                                      title: "Error",
+                                      message:
+                                          "The value must be a floating number and between 0.0 - 1.0",
+                                      context: context);
+                                } else {
+                                  if(!filterUse) {
+                                    editedIndex.clear();
+                                  }
 
-                                for (int i = 0; i < col.length; i++) {
-                                 if(!filterUse) {
-                                editedIndex.add(i);
-                                Color c = col[i];
-                                var hslColor = HSLColor.fromColor(c);
-                                double hueVal = hslColor.hue;
-                                if (hueVal == 0) hueVal = 2;
-                                hueVal = hueVal * double.parse(dt);
-                                if (hueVal >= 360.0) hueVal = 2;
-                                if (i == 1) print(hueVal);
-                                c = hslColor.withHue(hueVal).toColor();
-                                col[i] = c;
-                              } else{
-                                   if(editedIndex.contains(i)){
-                                     Color c = col[i];
-                                     var hslColor = HSLColor.fromColor(c);
-                                     double hueVal = hslColor.hue;
-                                     if (hueVal == 0) hueVal = 2;
-                                     hueVal = hueVal * double.parse(dt);
-                                     if (hueVal >= 360.0) hueVal = 2;
-                                     if (i == 1) print(hueVal);
-                                     c = hslColor.withHue(hueVal).toColor();
-                                     col[i] = c;
-                                   }
-                                 }
-                            }
-
-                              }
-
-                              await ThemeManager().updateColors(
-                                  test: true,
-                                  path: widget.filePath,
-                                  col: col,
-                                  editedIndex: editedIndex,
-                                  oldCol: oldCol,
-                                  update: widget.update);
-                              oldCol = List.of(col);
-                              refreshPage();
-                              setState(() {});
-                              //hue=dt;
-                            },
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          GetTextBox(
-                            hintText: "Saturation Factor",
-                            height: 50,
-                            onDone: (dt) async {
-                              if (double.tryParse(dt) == null ||
-                                  double.tryParse(dt)! >= 2.0 ||
-                                  double.tryParse(dt)! <= 0.0) {
-                                WidsManager().showMessage(
-                                    title: "Error",
-                                    message:
-                                        "The value must be a floating number and between 0.0 - 1.0",
-                                    context: context);
-                              } else {
-                             if(!filterUse) {
-                              editedIndex.clear();
-                            }
-
-                            for (int i = 0; i < col.length; i++) {
-                                 if(filterUse){
-
-
-                                   if(editedIndex.contains(i)){
-                                     Color c = col[i];
-                                     var hslColor = HSLColor.fromColor(c);
-                                     double saturationVal = hslColor.saturation;
-                                     if (saturationVal == 0) saturationVal = 0.01;
-                                     saturationVal =
-                                         saturationVal * double.parse(dt);
-                                     if (saturationVal >= 1.0) {
-                                       saturationVal =
-                                       (hslColor.saturation > 0.5) ? 0.95 : 0.5;
+                                  for (int i = 0; i < col.length; i++) {
+                                   if(!filterUse) {
+                                  editedIndex.add(i);
+                                  Color c = col[i];
+                                  var hslColor = HSLColor.fromColor(c);
+                                  double hueVal = hslColor.hue;
+                                  if (hueVal == 0) hueVal = 2;
+                                  hueVal = hueVal * double.parse(dt);
+                                  if (hueVal >= 360.0) hueVal = 2;
+                                  if (i == 1) print(hueVal);
+                                  c = hslColor.withHue(hueVal).toColor();
+                                  col[i] = c;
+                                } else{
+                                     if(editedIndex.contains(i)){
+                                       Color c = col[i];
+                                       var hslColor = HSLColor.fromColor(c);
+                                       double hueVal = hslColor.hue;
+                                       if (hueVal == 0) hueVal = 2;
+                                       hueVal = hueVal * double.parse(dt);
+                                       if (hueVal >= 360.0) hueVal = 2;
+                                       if (i == 1) print(hueVal);
+                                       c = hslColor.withHue(hueVal).toColor();
+                                       col[i] = c;
                                      }
-                                     c = hslColor
-                                         .withSaturation(saturationVal)
-                                         .toColor();
-                                     col[i] = c;
                                    }
-                                 } else{
-                                editedIndex.add(i);
-                                Color c = col[i];
-                                var hslColor = HSLColor.fromColor(c);
-                                double saturationVal = hslColor.saturation;
-                                if (saturationVal == 0) saturationVal = 0.01;
-                                saturationVal =
-                                    saturationVal * double.parse(dt);
-                                if (saturationVal >= 1.0) {
-                                  saturationVal =
-                                      (hslColor.saturation > 0.5) ? 0.95 : 0.5;
-                                }
-                                c = hslColor
-                                    .withSaturation(saturationVal)
-                                    .toColor();
-                                col[i] = c;
                               }
-                            }
 
-                              } await ThemeManager().updateColors(
-                                  test: true,
-                                  path: widget.filePath,
-                                  col: col,
-                                  editedIndex: editedIndex,
-                                  oldCol: oldCol,
-                                  update: widget.update);
-                              oldCol = List.of(col);
-                              refreshPage();
-                              setState(() {});
-                            },
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          GetTextBox(
-                            hintText: "Value Factor",
-                            height: 50,
-                            onDone: (dt) async {
-                              if(!filterUse)   editedIndex.clear();
+                                }
+
+                                await ThemeManager().updateColors(
+                                    test: true,
+                                    path: widget.filePath,
+                                    col: col,
+                                    editedIndex: editedIndex,
+                                    oldCol: oldCol,
+                                    update: widget.update);
+                                oldCol = List.of(col);
+                                refreshPage();
+                                setState(() {});
+                                //hue=dt;
+                              },
+                            ),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            GetTextBox(
+                              hintText: "Saturation Factor",
+                              height: 50,
+                              onDone: (dt) async {
+                                Navigator.pop(context);
+
+                                if (double.tryParse(dt) == null ||
+                                    double.tryParse(dt)! >= 2.0 ||
+                                    double.tryParse(dt)! <= 0.0) {
+                                  WidsManager().showMessage(
+                                      title: "Error",
+                                      message:
+                                          "The value must be a floating number and between 0.0 - 1.0",
+                                      context: context);
+                                } else {
+                               if(!filterUse) {
+                                editedIndex.clear();
+                              }
 
                               for (int i = 0; i < col.length; i++) {
-                                if(filterUse){
-                                  if(editedIndex.contains(i)){
+                                   if(filterUse){
+
+
+                                     if(editedIndex.contains(i)){
+                                       Color c = col[i];
+                                       var hslColor = HSLColor.fromColor(c);
+                                       double saturationVal = hslColor.saturation;
+                                       if (saturationVal == 0) saturationVal = 0.01;
+                                       saturationVal =
+                                           saturationVal * double.parse(dt);
+                                       if (saturationVal >= 1.0) {
+                                         saturationVal =
+                                         (hslColor.saturation > 0.5) ? 0.95 : 0.5;
+                                       }
+                                       c = hslColor
+                                           .withSaturation(saturationVal)
+                                           .toColor();
+                                       col[i] = c;
+                                     }
+                                   } else{
+                                  editedIndex.add(i);
+                                  Color c = col[i];
+                                  var hslColor = HSLColor.fromColor(c);
+                                  double saturationVal = hslColor.saturation;
+                                  if (saturationVal == 0) saturationVal = 0.01;
+                                  saturationVal =
+                                      saturationVal * double.parse(dt);
+                                  if (saturationVal >= 1.0) {
+                                    saturationVal =
+                                        (hslColor.saturation > 0.5) ? 0.95 : 0.5;
+                                  }
+                                  c = hslColor
+                                      .withSaturation(saturationVal)
+                                      .toColor();
+                                  col[i] = c;
+                                }
+                              }
+
+                                } await ThemeManager().updateColors(
+                                    test: true,
+                                    path: widget.filePath,
+                                    col: col,
+                                    editedIndex: editedIndex,
+                                    oldCol: oldCol,
+                                    update: widget.update);
+                                oldCol = List.of(col);
+                                refreshPage();
+                                setState(() {});
+                              },
+                            ),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            GetTextBox(
+                              hintText: "Value Factor",
+                              height: 50,
+                              onDone: (dt) async {
+                                Navigator.pop(context);
+                                if(!filterUse)   editedIndex.clear();
+                                for (int i = 0; i < col.length; i++) {
+                                  if(filterUse){
+                                    if(editedIndex.contains(i)){
+                                      Color c = col[i];
+                                      var hslColor = HSLColor.fromColor(c);
+                                      double lightnessVal = hslColor.lightness;
+                                      if (lightnessVal == 0) lightnessVal = 0.01;
+                                      lightnessVal =
+                                          lightnessVal * double.parse(dt);
+                                      if (lightnessVal >= 1.0) {
+                                        lightnessVal =
+                                        (hslColor.lightness > 0.5) ? 0.95 : 0.5;
+                                      }
+                                      c = hslColor
+                                          .withLightness(lightnessVal)
+                                          .toColor();
+                                      col[i] = c;
+                                    }
+                                  } else{
+                                    editedIndex.add(i);
                                     Color c = col[i];
                                     var hslColor = HSLColor.fromColor(c);
                                     double lightnessVal = hslColor.lightness;
@@ -808,37 +833,21 @@ class _ChangeColorsState extends State<ChangeColors> {
                                         .toColor();
                                     col[i] = c;
                                   }
-                                } else{
-                                  editedIndex.add(i);
-                                  Color c = col[i];
-                                  var hslColor = HSLColor.fromColor(c);
-                                  double lightnessVal = hslColor.lightness;
-                                  if (lightnessVal == 0) lightnessVal = 0.01;
-                                  lightnessVal =
-                                      lightnessVal * double.parse(dt);
-                                  if (lightnessVal >= 1.0) {
-                                    lightnessVal =
-                                    (hslColor.lightness > 0.5) ? 0.95 : 0.5;
-                                  }
-                                  c = hslColor
-                                      .withLightness(lightnessVal)
-                                      .toColor();
-                                  col[i] = c;
                                 }
-                              }
-                              await ThemeManager().updateColors(
-                                  test: true,
-                                  path: widget.filePath,
-                                  col: col,
-                                  editedIndex: editedIndex,
-                                  oldCol: oldCol,
-                                  update: widget.update);
-                              oldCol = List.of(col);
-                              refreshPage();
-                              setState(() {});
-                            },
-                          ),
-                        ],
+                                await ThemeManager().updateColors(
+                                    test: true,
+                                    path: widget.filePath,
+                                    col: col,
+                                    editedIndex: editedIndex,
+                                    oldCol: oldCol,
+                                    update: widget.update);
+                                oldCol = List.of(col);
+                                refreshPage();
+                                setState(() {});
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                       child: const Icon(Icons.auto_graph_rounded),
                     ),
@@ -968,6 +977,8 @@ class _ChangeColorsState extends State<ChangeColors> {
               ),
       );
     } catch (e) {
+      File fl=File("${widget.filePath}-new");
+      if(fl.existsSync())fl.deleteSync();
       print(e);
       return Scaffold(
           backgroundColor: ThemeDt.themeColors["bg"],
@@ -1074,6 +1085,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                 ),
                 GetButtons(
                   onTap: () async {
+
                     if (editedIndex.length == col.length) {
                       Navigator.pop(context);
                       ThemeManager().updateColors(
@@ -1083,6 +1095,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                           editedIndex: editedIndex,
                           update: false,
                           test: false);
+
                     } else {
                       var path = "${widget.filePath}-new";
                       File fl = File(path);
@@ -1092,6 +1105,19 @@ class _ChangeColorsState extends State<ChangeColors> {
                         flOrg.delete();
                         fl.rename(widget.filePath);
                       }
+                    }
+                    if(widget.filePath.contains("/gtk-4.0/")){
+                      File fl =File(widget.filePath);
+                      ThemeDt().setGTK4(fl.parent.parent.path);
+                     print(fl.parent.parent.path);
+                    }else if(widget.filePath.contains("/gtk-3.0/")){
+                      File fl =File(widget.filePath);
+                      await ThemeDt().setGTK3("default");
+                      print(fl.parent.parent.path.split("/").last);
+                      ThemeDt().setGTK3(fl.parent.parent.path.split("/").last);
+                    }else if(widget.filePath.contains("/gnome-shell/")){
+                      File fl =File(widget.filePath);
+                      ThemeDt().setShell(fl.parent.parent.path.split("/").last);
                     }
                   },
                   text: "Apply (System)",

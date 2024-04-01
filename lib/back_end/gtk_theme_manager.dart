@@ -313,11 +313,12 @@ class ThemeManager {
     }
     if (test ?? false == false) {
       cssFile = File("$path-new");
+    }
       if (await cssFile.exists()) {
         await cssFile.delete();
       }
       await cssFile.writeAsString(cssContents);
-    }
+      print(cssFile.path);
     if (update) {
       ThemeDt.themeColors =
           await ThemeDt().extractColors(filePath: cssFile.path);

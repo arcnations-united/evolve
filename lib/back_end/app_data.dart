@@ -6,8 +6,8 @@ import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 class AppData{
   //Class to provide some important app data - Like release notes, version and more
   //Also maintains a data file for the user in json
-  static var vers = "1.3";
-  static var release = "alpha";
+  static var vers = "1.3.1";
+  static var release = "beta";
   static Map DataFile={};
   static bool dt_not_present=false;
   getReleaseNotes()async{

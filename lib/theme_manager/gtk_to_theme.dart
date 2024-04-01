@@ -149,6 +149,7 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
         await dir.delete(recursive: true);
       }
       if(pathToTheme=="default")return;
+      print(pathToTheme);
       await Shell().run("""
       cp -r $pathToTheme/gtk-4.0 ${SystemInfo.home}/.config
       """);
@@ -494,21 +495,30 @@ class SystemInfo{
 
     int i =0;
     int j =0;
-    List<String>checkList=["gtk-2.0","gtk-3.0","gnome-shell",];
+    //TODO gtk 3.x/4.x support
     List<String>checkListIco=["apps","actions","categories","16x16","22x22", "24x24","64x64","128x128","index.theme", "animation", "panel"];
     Directory dir = Directory(path);
     List l = dir.listSync();
-
+    if(l.length==1){
+      if(l[0]=="gnome-shell")return 1;
+    }
+if(path.contains(".themes")||path.contains(".icons")||path.contains(".config")) return 0;
+bool containsIndexTheme=false;
     for(var lst in l){
-      if(checkList.contains(lst.toString().split("/").last.replaceAll("'", ""))){
-        i++;
-      }else if(checkListIco.contains(lst.toString().split("/").last.replaceAll("'", ""))){
+      var folderName = lst.toString().split("/").last.replaceAll("'", "");
+      if(folderName=="index.theme"){
+        containsIndexTheme=true;
+      }
+     if(folderName.startsWith("gtk-")){
+        return 1;
+      }
+      else if(checkListIco.contains(folderName)){
         j++;
       }
+
     }
-    if(i==checkList.length) {
-      if(l.length>10)return 0;
-      return 1;
+    if(j>0){
+      if(containsIndexTheme)return 2;
     }
     if(j>=3&&j<=checkListIco.length) {
       return 2;
