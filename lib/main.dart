@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gtkthememanager/front_end/inital_page.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
-import 'back_end/app_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

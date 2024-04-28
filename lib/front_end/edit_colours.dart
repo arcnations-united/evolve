@@ -20,8 +20,10 @@ class ChangeColors extends StatefulWidget {
   final bool? editAccents;
   final Function() state;
   final bool? update;
+  final bool? isDefinedFile;
   ChangeColors(
       {super.key,
+        this.isDefinedFile,
       required this.filePath,
       required this.state,
       this.update,
@@ -1106,18 +1108,21 @@ class _ChangeColorsState extends State<ChangeColors> {
                         fl.rename(widget.filePath);
                       }
                     }
-                    if(widget.filePath.contains("/gtk-4.0/")){
-                      File fl =File(widget.filePath);
-                      ThemeDt().setGTK4(fl.parent.parent.path);
-                     print(fl.parent.parent.path);
-                    }else if(widget.filePath.contains("/gtk-3.0/")){
-                      File fl =File(widget.filePath);
-                      await ThemeDt().setGTK3("default");
-                      print(fl.parent.parent.path.split("/").last);
-                      ThemeDt().setGTK3(fl.parent.parent.path.split("/").last);
-                    }else if(widget.filePath.contains("/gnome-shell/")){
-                      File fl =File(widget.filePath);
-                      ThemeDt().setShell(fl.parent.parent.path.split("/").last);
+                   if(!(widget.isDefinedFile ?? false)) {
+                      if (widget.filePath.contains("/gtk-4.0/")) {
+                        File fl = File(widget.filePath);
+                        ThemeDt().setGTK4(fl.parent.parent.path);
+                        print(fl.parent.parent.path);
+                      } else if (widget.filePath.contains("/gtk-3.0/")) {
+                        File fl = File(widget.filePath);
+                        await ThemeDt().setGTK3("default");
+                        print(fl.parent.parent.path.split("/").last);
+                        ThemeDt()
+                            .setGTK3(fl.parent.parent.path.split("/").last);
+                      } else if (widget.filePath.contains("/gnome-shell/")) {
+                        File fl = File(widget.filePath);
+                        ThemeDt().setShell(fl.parent.parent.path.split("/").last);
+                      }
                     }
                   },
                   text: "Apply (System)",
