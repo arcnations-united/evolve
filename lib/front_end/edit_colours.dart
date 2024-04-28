@@ -662,7 +662,6 @@ class _ChangeColorsState extends State<ChangeColors> {
                               height: 50,
                               onDone: (dt) async {
                             Navigator.pop(context);
-                             print(isUpdatingState);
                                 if (double.tryParse(dt) == null ||
                                     double.tryParse(dt)! >= 2.0 ||
                                     double.tryParse(dt)! <= 0.0) {
@@ -685,7 +684,6 @@ class _ChangeColorsState extends State<ChangeColors> {
                                   if (hueVal == 0) hueVal = 2;
                                   hueVal = hueVal * double.parse(dt);
                                   if (hueVal >= 360.0) hueVal = 2;
-                                  if (i == 1) print(hueVal);
                                   c = hslColor.withHue(hueVal).toColor();
                                   col[i] = c;
                                 } else{
@@ -696,7 +694,6 @@ class _ChangeColorsState extends State<ChangeColors> {
                                        if (hueVal == 0) hueVal = 2;
                                        hueVal = hueVal * double.parse(dt);
                                        if (hueVal >= 360.0) hueVal = 2;
-                                       if (i == 1) print(hueVal);
                                        c = hslColor.withHue(hueVal).toColor();
                                        col[i] = c;
                                      }
@@ -1112,11 +1109,9 @@ class _ChangeColorsState extends State<ChangeColors> {
                       if (widget.filePath.contains("/gtk-4.0/")) {
                         File fl = File(widget.filePath);
                         ThemeDt().setGTK4(fl.parent.parent.path);
-                        print(fl.parent.parent.path);
                       } else if (widget.filePath.contains("/gtk-3.0/")) {
                         File fl = File(widget.filePath);
                         await ThemeDt().setGTK3("default");
-                        print(fl.parent.parent.path.split("/").last);
                         ThemeDt()
                             .setGTK3(fl.parent.parent.path.split("/").last);
                       } else if (widget.filePath.contains("/gnome-shell/")) {
