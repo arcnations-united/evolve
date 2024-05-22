@@ -86,7 +86,7 @@ class _ExtensionUiState extends State<ExtensionUi> {
     } catch (e) {
       m["desc"] = "N/A";
     }
-    try {
+   /* try {
       if (!info.contains("Enabled:")) {
         throw 42;
       }
@@ -101,21 +101,21 @@ class _ExtensionUiState extends State<ExtensionUi> {
           : false;
     } catch (e) {
       m["enable"] = false;
-    }
+    }*/
     try {
       if (!info.contains("State:")) {
         throw 42;
       }
-      m["state"] = info
+      m["enable"] = ["ACTIVE","ENABLED",].contains(info
                   .substring(
                       info.indexOf("State:") + "State:".length,
                       info.indexOf(
                           "\n", info.indexOf("State:") + "State:".length))
-                  .trim() ==
-              "ACTIVE"
+                  .trim())
           ? true
           : false;
     } catch (e) {
+      m["enable"] = false;
       m["state"] = false;
     }
     try {
@@ -236,11 +236,9 @@ class _ExtensionUiState extends State<ExtensionUi> {
                                 value: exts.isNotEmpty ?  exts.values.elementAt(i)["enable"] :false,
                                 onTap: () async {
                                   setState(() {
-                                    exts[exts.keys.elementAt(i)]["enable"] =
-                                        !exts[exts.keys.elementAt(i)]["enable"];
+                                    exts[exts.keys.elementAt(i)]["enable"] = !exts[exts.keys.elementAt(i)]["enable"];
                                   });
-                                  Shell().run(
-                                      "gnome-extensions ${exts[exts.keys.elementAt(i)]["enable"] ? "enable" : "disable"} ${exts.keys.elementAt(i)}");
+                                  Shell().run("gnome-extensions ${exts[exts.keys.elementAt(i)]["enable"] ? "enable" : "disable"} ${exts.keys.elementAt(i)}");
                                 }),
                           )
                         ],
@@ -494,7 +492,9 @@ String? installable;
                                   onPressed: () async {
 
                                     try {
-                                    }  catch (e) {WidsManager().showMessage(title: "info", message: e.toString(), context: context);
+                                      await Shell().run("gnome-extensions prefs ${widget.uuid}");
+                                    }  catch (e) {
+                                      WidsManager().showMessage(title: "info", message: e.toString(), context: context);
                                     }
 
 
