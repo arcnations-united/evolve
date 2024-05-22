@@ -48,6 +48,7 @@ dependencies:
   flutter_animate: ^4.5.0
   bitsdojo_window: ^0.1.6
   page_transition: ^2.1.0
+  animations: ^2.0.11
 
 dev_dependencies:
   flutter_test:

@@ -13,7 +13,7 @@ import 'gtk_to_theme.dart';
 //Returns required widgets in style of the applied GTK Theme
 class WidsManager {
   static int activeTab = 0;
-  static List<String> tabs = ["Theme", "Icons", "Settings", "About"];
+  static List<String> tabs = ["Theme", "Icons", "Configs","Extensions","Settings", "About"];
   Widget getContainer(
       {double borderOpacity = 1.0,
       double? mar,
@@ -21,7 +21,7 @@ class WidsManager {
       Curve? curve,
       double? borderRadius,
       String? colour,
-      bool? border,
+      bool? border,final
       child,
       double? pad,
       double? width,
@@ -52,8 +52,8 @@ class WidsManager {
               decoration: BoxDecoration(
                 gradient:AppData.DataFile["GNOMEUI"]?null: LinearGradient(
                   colors: [
-                    ThemeDt.themeColors["fg"]!.withOpacity(0.3),
-                    ThemeDt.themeColors["fg"]!.withOpacity(0.01),
+                    ThemeDt.themeColors["altfg"]!.withOpacity(0.3),
+                    ThemeDt.themeColors["altfg"]!.withOpacity(0.01),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -292,13 +292,11 @@ class WidsManager {
             .run("gsettings get org.gnome.desktop.interface font-name"))
         .outText;
     await Future.delayed(1.seconds);
-    print(sysFont);
     sysFont = sysFont.replaceAll(",", "");
     sysFontSize = double.tryParse(
         sysFont.substring(sysFont.lastIndexOf(" ") + 1, sysFont.length - 1));
     sysFont = sysFont.substring(1, sysFont.lastIndexOf(" "));
-    print(sysFontSize);
-    print(sysFont);
+
   }
 
   Future<void> _launchUrl(url) async {
@@ -513,6 +511,122 @@ class WidsManager {
         ));
   }
 }
+
+class AdaptiveList extends StatefulWidget {
+  final List<Widget> children;
+final GlobalKey parentKey;
+
+
+ final double space;
+
+   AdaptiveList({super.key,required this.children,  double this.space=5, required this.parentKey});
+
+  @override
+  State<AdaptiveList> createState() => _AdaptiveListState();
+}
+
+class _AdaptiveListState extends State<AdaptiveList> {
+  List <double>spacingWidth=[];
+  List <double>spacingColm=[];
+  List <GlobalKey> keys=[];
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    t?.cancel();
+    super.dispose();
+  }
+  bool row=true;
+  GlobalKey thisKey=GlobalKey();
+  @override
+  void initState() {
+row =true;
+    // TODO: implement initState
+    for(int i=0;i<widget.children.length;i++){
+      spacingWidth.add(widget.space*i);
+      keys.add(GlobalKey());
+    }
+    generate();
+    super.initState();
+  }
+  generate()async{
+    await Future.delayed(10.milliseconds);
+    spacingWidth=[];
+    for(int i=0;i<widget.children.length;i++) {
+      double d=0;
+      double d1=0;
+      for(int j=0;j<i;j++) {
+        d =  ((j==0)?0:widget.space) + d +
+            keys[j].currentContext!.size!.width;
+        d1 = widget.space+d1+
+            keys[j].currentContext!.size!.height;
+        if(lrgHt<keys[j].currentContext!.size!.height){
+          lrgHt=keys[j].currentContext!.size!.height;
+        }
+
+      }
+     // print(widget.space);
+      //print(d);
+      spacingWidth.add(d);
+      spacingColm.add(d1);
+    }
+    mod();
+  }
+  double ht=0.0;
+  double lrgHt=0.0;
+  mod()async{
+    await Future.delayed(10.milliseconds);
+
+    if((spacingWidth.last+keys.last.currentContext!.size!.width)<widget.parentKey.currentContext!.size!.width){
+      setState(() {
+        row=true;
+        ht=lrgHt;
+      });
+    }else{
+      setState(() {
+        row=false;
+        ht=spacingColm.last+keys.last.currentContext!.size!.height+widget.space;
+      });
+    }
+  }
+  Timer? t;
+  bool load=false;
+@override
+  void didUpdateWidget(covariant AdaptiveList oldWidget) {
+    // TODO: implement didUpdateWidget
+  mod();
+    super.didUpdateWidget(oldWidget);
+  }
+  @override
+  Widget build(BuildContext context) {
+  // generate();
+    return AnimatedOpacity(
+      key: thisKey,
+      opacity: load?0:1,
+      duration: 100.milliseconds,
+      child: AnimatedContainer(
+        duration: ThemeDt.d,
+        curve: ThemeDt.c,
+
+        height: ht+10,
+        child: Stack(
+          children: [
+            for(int i=0;i<widget.children.length;i++)
+              AnimatedPositioned(
+                  left: i==0?0:row?widget.space+spacingWidth[i]:0,
+                  top: !(row)?widget.space+spacingColm[i]:0,
+                  duration: ThemeDt.d,
+                  curve: ThemeDt.c,
+                  child: Container(
+                      key: keys[i],
+                      child: widget.children[i])
+              )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class AnimatedBlurryContainer extends StatefulWidget {
   final Widget child;
   final Duration?  delay;
@@ -564,6 +678,67 @@ Timer? t;
   });
   }
 }
+
+class FutureWid extends StatefulWidget {
+  final  val;
+  final Widget child;
+  final Widget? loadChild;
+  final double width;
+  final double height;
+  final Duration duration;
+  const FutureWid({super.key, required this.val, required this.child, this.loadChild,  this.duration=const Duration(seconds: 3), required this.width, required this.height});
+
+  @override
+  State<FutureWid> createState() => _FutureWidState();
+}
+
+class _FutureWidState extends State<FutureWid> with TickerProviderStateMixin{
+  late AnimationController ant;
+  @override
+  void initState() {
+    // TODO: implement initState
+    ant=AnimationController(vsync: this);
+    super.initState();
+  }
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    ant.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return  AnimatedCrossFade(
+        duration: 200.milliseconds,
+      firstChild: widget.loadChild ??  WidsManager().getContainer(
+          colour: "fg",
+          width: widget.width,
+          height: widget.height
+      ).animate(
+         controller: ant,
+          onComplete: (dt){
+           ant.repeat();
+          },
+          effects :[
+        ShimmerEffect(
+          duration: widget.duration,
+          color: ThemeDt.themeColors["fg"]!,
+          size: 6,
+          angle: 45,
+          colors: [
+            ThemeDt.themeColors["altbg"]!,
+            ThemeDt.themeColors["fg"]!,
+            ThemeDt.themeColors["altbg"]!,
+
+          ],
+        )
+      ]),
+      secondChild: widget.child,
+      crossFadeState: widget.val==null?CrossFadeState.showFirst:CrossFadeState.showSecond,
+    );
+  }
+}
+
 
 class TabButton extends StatefulWidget {
   final String text;

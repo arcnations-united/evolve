@@ -1,5 +1,17 @@
 RELEASE NOTES
 Public release
+[v1.4 - Public Release]
+    -changed animations
+[v1.3.2]
+-TWO NEW TABS!
+    -NEW CONFIG TAB!
+        -Seamlessly backup theme, icon, wallpaper, extension and more.
+        -Share your own custom theme-pack by sending the config file!
+        -The config has to be applied back using Evolve
+    -All new EXTENSIONS page to manage installed extensions
+        -Uninstall extensions, edit preferences and more!
+        -All new Extensions surf page to surf online extensions and install them seamlessly
+    -Core level performance improvements
 
 [v1.3.1 - Public Release]
 -Install page changes

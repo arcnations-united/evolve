@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:process_run/process_run.dart';
 
 class ThemeManager {
   //Class to manage theme and icon list inside the system
@@ -12,6 +14,69 @@ class ThemeManager {
   static Map<String, Map<String, bool>> themeSupport =
       {}; //Map to contain support info of theme
   static String themeFolder = ""; //The .themes folder path
+  extensionInstaller({String? uuid, String? link, bool silentInstall=false}) async {
+    if(uuid==null){
+      if(link==null){
+        return;
+      }else{
+        await Shell().run("wget -O link.file $link");
+        File linkFile = File("./link.file");
+        String  fl=linkFile.readAsStringSync();
+        int ind1=fl.indexOf("data-uuid=\"");
+        fl=fl.substring(ind1+"data-uuid=\"".length,fl.indexOf("\"",ind1+"data-uuid=\"".length)).trim();
+        uuid=fl;
+        linkFile.delete();
+      }
+    }
+    //FETCH VERSION NUM
+    String exts =(await Shell().run("gnome-extensions list")).outText;
+    uuid=uuid.replaceAll("'", "").trim();
+    if(exts.contains(uuid)){
+      return "extension already installed...";
+    }
+
+    if(!silentInstall){
+    String slret= (await Shell().run("""busctl --user call org.gnome.Shell /org/gnome/Shell org.gnome.Shell.Extensions InstallRemoteExtension s  $uuid""")).outText;
+      return slret;
+    }
+    String h =(await Shell().run("gnome-shell --version")).outText.replaceAll("GNOME Shell ", "");
+    h=h.substring(0,h.lastIndexOf(".")).trim();
+    await Shell().run("mkdir extension");
+    await Shell().run("wget -O info.json https://extensions.gnome.org/extension-info/?uuid=$uuid&shell_version=$h");
+    File info = File("./info.json");
+    Map m = jsonDecode(info.readAsStringSync());
+    int vers=m["shell_version_map"][h]["version"];
+    await Shell().run("gnome-extensions install https://extensions.gnome.org${m["download_url"]} --force");
+    String s=(await Shell().run("dconf read /org/gnome/shell/enabled-extensions")).outText;
+    s=s.substring(1,s.length-1).replaceAll("[", "").replaceAll("]", "");
+    List extensions = s.split(',');
+    for(int i=0;i<extensions.length;i++){
+      extensions[i]=extensions[i].toString().trim();
+    }
+    if(extensions.contains("'$uuid'")==false)
+    {
+      extensions.add("'$uuid'");
+    }
+    extensions=extensions.toSet().toList();
+
+    await Shell().run("dconf write /org/gnome/shell/enabled-extensions \"${extensions.toString()}\"");
+    info.delete();
+    Shell().run("rm -r extension");
+
+    /*
+   await Future.delayed(100.milliseconds);
+   await  Shell().run("bash -c 'cd extension && wget https://extensions.gnome.org/extension-data/user-themegnome-shell-extensions.gcampax.github.com.v55.shell-extension.zip';");
+   await  Shell().run("bash -c 'cd extension && unzip user-themegnome-shell-extensions.gcampax.github.com.v55.shell-extension.zip';");
+   await  Shell().run("bash -c 'cd extension && rm user-themegnome-shell-extensions.gcampax.github.com.v55.shell-extension.zip';");
+
+   Shell().run("bash -c 'mkdir -p ${SystemInfo.homeDir}/.local/share/gnome-shell/extensions/$uuid';");
+   await Future.delayed(100.milliseconds);
+   Shell().run("bash -c 'cp -r ./extensions/* ${SystemInfo.homeDir}/.local/share/gnome-shell/extensions/$uuid';");
+   await Future.delayed(100.milliseconds);
+   Shell().run("bash -c 'gnome-extensions enable $uuid';");
+   await Future.delayed(100.milliseconds);
+   */*/
+  }
 
   Future<bool> populateThemeList() async {
     //fetches list of GTK Themes installed
@@ -318,10 +383,9 @@ class ThemeManager {
         await cssFile.delete();
       }
       await cssFile.writeAsString(cssContents);
-      print(cssFile.path);
     if (update) {
       ThemeDt.themeColors =
-          await ThemeDt().extractColors(filePath: cssFile.path);
+          await ThemeDt.extractColors(filePath: cssFile.path);
       ThemeDt().generateTheme();
     }
     cssContents="";

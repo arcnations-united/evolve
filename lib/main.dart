@@ -1,4 +1,6 @@
+
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gtkthememanager/front_end/inital_page.dart';
@@ -30,20 +32,29 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     // TODO: implement initState
-    SystemInfo().getHome();
     initiateTheme();
     super.initState();
   }
   initiateTheme()async{
 
+      await SystemInfo().getHome();
+      await ThemeDt().setTheme();
+
+    setState(() {
+      load=false;
+    });
+
   }
+  bool load=true;
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(15),
       child: MaterialApp(
-          home: CheckValidity(state: state,)
-      ).animate(
+        theme: ThemeDt.themeData,
+      darkTheme: ThemeDt.themeData,
+          home: load?Center(child: CircularProgressIndicator(),):
+          CheckValidity(state: state,)).animate(
         effects: [
           ScaleEffect(
               begin: const Offset(0.8,0.8),

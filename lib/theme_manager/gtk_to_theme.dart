@@ -8,6 +8,7 @@ import 'gtk_widgets.dart';
 
 //edited how colours are fetched from gtk.css
 class ThemeDt {
+  static ThemeData themeData=ThemeData();
   static Duration d = const Duration(milliseconds: 300);
   static Curve c = Curves.easeOutCubic;
   static String ThemeNamePath = "";
@@ -27,7 +28,48 @@ class ThemeDt {
   };
   static bool isIcoFolderMade = false;
   static bool isThemeFolderMade = false;
+  setAppTheme(){
+    double headSize=30;
 
+    var textTheme = TextTheme(
+          headlineLarge:TextStyle(fontSize:headSize,  fontWeight: FontWeight.w700,  color: themeColors["fg"]!),
+          headlineMedium :TextStyle(fontSize:headSize/1.3, fontWeight: FontWeight.w600,  color: themeColors["fg"]!),
+          headlineSmall :TextStyle(fontSize:headSize/1.3/1.3, fontWeight: FontWeight.w600, color: themeColors["fg"]!),
+          bodyLarge:TextStyle(fontSize:headSize/1.6, fontWeight: FontWeight.w400,color: themeColors["fg"]!),
+          bodyMedium :TextStyle(fontSize:headSize/1.6/1.3, fontWeight: FontWeight.w300, color: themeColors["fg"]! ),
+          bodySmall :TextStyle(fontSize:headSize/1.6/1.3/1.3,fontWeight: FontWeight.w300, height: 0.96 ,color: themeColors["fg"]!),
+          displaySmall: TextStyle(fontSize:headSize/1.6/1.6/1.3, fontWeight: FontWeight.w300, color: themeColors["fg"]!),
+          labelMedium: TextStyle(fontSize:headSize/1.6/1.6/1.3, fontWeight: FontWeight.w300,color: themeColors["fg"]! ),
+          labelLarge: TextStyle(fontSize:headSize/1.6/1.6, fontWeight: FontWeight.w300,color: themeColors["rowSltLabel"]! ),
+        );
+    themeData=ThemeData(
+
+      textSelectionTheme: TextSelectionThemeData(
+        selectionColor: ThemeDt.themeColors["altfg"]!.withOpacity(0.2)
+      ),
+        useMaterial3: true,
+        colorScheme: ColorScheme(
+            brightness: Brightness.light,
+            primary: themeColors["altbg"]!,
+            onPrimary: themeColors["altfg"]!,
+            secondary: themeColors["rowSltBG"]!,
+            onSecondary: themeColors["rowSltLabel"]!,
+            error: Colors.red.shade800, onError: Colors.red.shade100, surface: themeColors["altbg"]!, onSurface: themeColors["altfg"]!
+        ),
+        buttonTheme: ButtonThemeData(
+        colorScheme: ColorScheme(
+            brightness: Brightness.light,
+            primary: themeColors["altbg"]!,
+            onPrimary: themeColors["altfg"]!,
+            secondary: themeColors["rowSltBG"]!,
+            onSecondary: themeColors["rowSltLabel"]!,
+            error: Colors.red.shade800, onError: Colors.red.shade100, surface: themeColors["altbg"]!, onSurface: themeColors["altfg"]!
+        ),
+        ),
+        scaffoldBackgroundColor: themeColors["bg"],
+        textTheme: textTheme
+    );
+  }
   //Getters - Get and populate Lists or set values accordingly
   Future<String> getGTKThemePath() async {
     //returns the GTK theme name currently in use
@@ -85,7 +127,7 @@ gsettings get org.gnome.desktop.interface icon-theme
       // TODO
     }
   }
-  Future<bool> searchTheme({bool? dark,}) async {
+ static Future<bool> searchTheme(dark) async {
     dark ??= true;
     Directory themeDirectory = Directory(ThemeNamePath);
       String gtkfile="gtk.css-new";
@@ -104,6 +146,7 @@ gsettings get org.gnome.desktop.interface icon-theme
         }
         path = "$ThemeNamePath/gtk-3.0/$gtkfile";
         gtk = File(path);
+
         if (await gtk.exists()) {
           themeColors = await extractColors(filePath: path);
           return true;
@@ -149,7 +192,7 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
         await dir.delete(recursive: true);
       }
       if(pathToTheme=="default")return;
-      print(pathToTheme);
+
       await Shell().run("""
       cp -r $pathToTheme/gtk-4.0 ${SystemInfo.home}/.config
       """);
@@ -208,9 +251,9 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
     respectSystem ??= true;
     try {
       if (respectSystem) ThemeNamePath = await getGTKThemePath();
-      if (await searchTheme(dark: dark)) {
-        generateTheme();
+      if (await searchTheme(dark)) {
 
+        generateTheme();
       } else {
         initiateFallbackTheme();
       }
@@ -226,7 +269,7 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
   }
 
   //Get colours from applied GTK Theme to set app theme.
-  Future<Map<String, Color>> extractColors({String? filePath, String? css}) async {
+ static Future<Map<String, Color>> extractColors({String? filePath, String? css}) async {
     final colorMap = <String, Color>{};
     File? file;
     if(filePath!=null)file= File(filePath);
@@ -375,7 +418,7 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
         factor: 1.1,
       );
       altFG = changeLight(
-        color: fg,
+        color: rowSltLabel,
         factor: 1.2,
       );
     } else {
@@ -387,8 +430,8 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
         color: bg,
         factor: 1.4,
       );
-      sltFG = changeLight(color: fg, factor: 1.3, light: false);
-      altFG = changeLight(color: fg, factor: 1.6, light: false);
+      sltFG = changeLight(color: rowSltLabel, factor: 1.3, light: false);
+      altFG = changeLight(color: rowSltLabel, factor: 1.2, light: true);
     }
     if(shouldReturn ?? false){
       return  {
@@ -412,6 +455,7 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
         "rowSltBG": rowSltBG.toColor(),
         "rowSltLabel": rowSltLabel.toColor(),
     };
+      setAppTheme();
     }
   }
   HSLColor changeLight({required HSLColor color, required double factor, bool? light}) {
@@ -439,7 +483,7 @@ listResFile(String resFilePath) async {
     List str = res.split('\n');
     return str;
 }
-   extractResToFile({required String resLoc, required String resFileLoc}) async{
+   static extractResToFile({required String resLoc, required String resFileLoc}) async{
     String finalPath = resFileLoc.substring(0,resFileLoc.lastIndexOf("/"),);
 String cmd = "gresource extract /home/arcnations/.themes/Yaru/gtk-3.0/gtk.gresource /com/ubuntu/themes/Yaru/3.0/gtk-dark.css >/home/arcnations/.themes/Yaru/gtk-3.0/theme.css";
 

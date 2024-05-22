@@ -6,7 +6,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gtkthememanager/back_end/app_data.dart';
 import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
 import 'package:gtkthememanager/front_end/edit_colours.dart';
-import 'package:gtkthememanager/front_end/main_page.dart';
 import 'package:gtkthememanager/front_end/new_theme.dart';
 import 'package:gtkthememanager/theme_manager/atplus_themes.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
@@ -1326,7 +1325,7 @@ widget: Column(
               ),
             ],
           ),
-          SizedBox(height: 10,),
+          const SizedBox(height: 10,),
           Align(
               alignment: Alignment.bottomRight,
               child: GetButtons(

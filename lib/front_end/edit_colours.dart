@@ -1137,7 +1137,7 @@ class _ChangeColorsState extends State<ChangeColors> {
       await fl.delete();
     }
     ThemeDt.themeColors =
-        await ThemeDt().extractColors(filePath: widget.filePath);
+        await ThemeDt.extractColors(filePath: widget.filePath);
     ThemeDt().generateTheme();
     refreshPage();
   }

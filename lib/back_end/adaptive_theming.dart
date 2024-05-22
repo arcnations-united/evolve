@@ -293,7 +293,7 @@ class AdaptiveTheming {
     Directory theme = Directory(themePath).parent;
     themePath = themePath.split("/").last;
     themePath = themePath.substring(0, themePath.lastIndexOf("-"));
-    Map origColours = await ThemeDt()
+    Map origColours = await ThemeDt
         .extractColors(filePath: "${theme.path}/$themePath/gtk-3.0/gtk.css");
 
     //makes sure colour generation is contrast-safe

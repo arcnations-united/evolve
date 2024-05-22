@@ -30,8 +30,8 @@ class _CheckValidityState extends State<CheckValidity> {
   }
   bool isLoading =true;
   fetchCode()async{
-    await ThemeDt().setTheme();
     await AppData().fetchDataFile();
+
     await AppSettingsToggle().updateAllParams();
           Navigator.push(
               context,
