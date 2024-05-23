@@ -134,119 +134,124 @@ class _ExtensionUiState extends State<ExtensionUi> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        WidsManager().gtkColumn(
-            width: TabManager.isSuperLarge?900.0:MediaQuery.sizeOf(context).width-((TabManager.isLargeScreen)?170:0),
-
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                WidsManager()
-                    .getText("GNOME Extensions", fontWeight: ThemeDt.boldText),
-                WidsManager().getText(
-                  "Right click more options.",
-                  color: "altfg",
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: MediaQuery.sizeOf(context).height-130,
+          child: SingleChildScrollView(
+            child: WidsManager().gtkColumn(
+                width: TabManager.isSuperLarge?900.0:MediaQuery.sizeOf(context).width-((TabManager.isLargeScreen)?170:0),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    WidsManager()
+                        .getText("GNOME Extensions", fontWeight: ThemeDt.boldText),
+                    WidsManager().getText(
+                      "Right click more options.",
+                      color: "altfg",
+                    ),
+                    const SizedBox(
+                      height: 13,
+                    )
+                  ],
                 ),
-                const SizedBox(
-                  height: 13,
-                )
-              ],
-            ),
-            children: [
-                for (int i = 0; i < (exts.isNotEmpty?exts.length:(AppData.DataFile["maxExts"] ?? 10)); i++)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ExtensionInfoPage(
-                                    m: exts.values.elementAt(i),
-                                    uuid: exts.keys.elementAt(i),
-                                  ))).then((val){
-                                    setState(() {
-                                      exts={};
-                                    });
-                                    populate();
-                      });
-                    },
-                    child: Container(
-                      color: ThemeDt.themeColors["altbg"],
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    for (int i = 0; i < (exts.isNotEmpty?exts.length:(AppData.DataFile["maxExts"] ?? 10)); i++)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => ExtensionInfoPage(
+                                        m: exts.values.elementAt(i),
+                                        uuid: exts.keys.elementAt(i),
+                                      ))).then((val){
+                                        setState(() {
+                                          exts={};
+                                        });
+                                        populate();
+                          });
+                        },
+                        child: Container(
+                          color: ThemeDt.themeColors["altbg"],
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  FutureWid(
-                                    val: exts.isEmpty ? null:"",
-                                    width: 100,
-                                    height: 15,
-                                    child: WidsManager().getText(
-                                        exts.isNotEmpty?  exts.values.elementAt(i)["name"] :"",
-                                        size: 15),
+                                  Row(
+                                    children: [
+                                      FutureWid(
+                                        val: exts.isEmpty ? null:"",
+                                        width: 100,
+                                        height: 15,
+                                        child: WidsManager().getText(
+                                            exts.isNotEmpty?  exts.values.elementAt(i)["name"] :"",
+                                            size: 15),
+                                      ),
+                                      const SizedBox(
+                                        width: 6,
+                                      ),
+                                      FutureWid(
+                                        val: exts.isEmpty ? null:"",
+                                        width: 20,
+                                        height: 10,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                                color: ThemeDt.themeColors["fg"]
+                                                    ?.withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(7)),
+                                          padding: const EdgeInsets.all(3),
+                                          child: WidsManager().getText(
+                                                exts.isNotEmpty? exts.values.elementAt(i)["vers"]:"N/A",
+                                                size: 10),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(
-                                    width: 6,
+                                    height: 3,
                                   ),
-                                  FutureWid(
-                                    val: exts.isEmpty ? null:"",
-                                    width: 20,
-                                    height: 10,
+                                  Opacity(
+                                    opacity: 0.7,
                                     child: Container(
-                                      decoration: BoxDecoration(
-                                            color: ThemeDt.themeColors["fg"]
-                                                ?.withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(7)),
-                                      padding: const EdgeInsets.all(3),
-                                      child: WidsManager().getText(
-                                            exts.isNotEmpty? exts.values.elementAt(i)["vers"]:"N/A",
-                                            size: 10),
-                                    ),
+                                        width: (TabManager.isSuperLarge?900.0:MediaQuery.sizeOf(context).width-((TabManager.isLargeScreen)?170:0)) / 2,
+                                        child: FutureWid(
+                                          val: exts.isEmpty ? null:"",
+                                          width: 150,
+                                          height: 10,
+                                          child: WidsManager().getText(
+                                             exts.isNotEmpty? exts.values.elementAt(i)["desc"]:"",
+                                              size: 10,
+                                              maxLines: 2),
+                                        )),
                                   ),
                                 ],
                               ),
-                              const SizedBox(
-                                height: 3,
-                              ),
-                              Opacity(
-                                opacity: 0.7,
-                                child: Container(
-                                    width: (TabManager.isSuperLarge?900.0:MediaQuery.sizeOf(context).width-((TabManager.isLargeScreen)?170:0)) / 2,
-                                    child: FutureWid(
-                                      val: exts.isEmpty ? null:"",
-                                      width: 150,
-                                      height: 10,
-                                      child: WidsManager().getText(
-                                         exts.isNotEmpty? exts.values.elementAt(i)["desc"]:"",
-                                          size: 10,
-                                          maxLines: 2),
-                                    )),
-                              ),
+                              FutureWid(
+                                val: exts.isEmpty ? null:"",
+                                width: 40,
+                                height: 20,
+                                child: GetToggleButton(
+                                    value: exts.isNotEmpty ?  exts.values.elementAt(i)["enable"] :false,
+                                    onTap: () async {
+                                      setState(() {
+                                        exts[exts.keys.elementAt(i)]["enable"] = !exts[exts.keys.elementAt(i)]["enable"];
+                                      });
+                                      Shell().run("gnome-extensions ${exts[exts.keys.elementAt(i)]["enable"] ? "enable" : "disable"} ${exts.keys.elementAt(i)}");
+                                    }),
+                              )
                             ],
-                          ),
-                          FutureWid(
-                            val: exts.isEmpty ? null:"",
-                            width: 40,
-                            height: 20,
-                            child: GetToggleButton(
-                                value: exts.isNotEmpty ?  exts.values.elementAt(i)["enable"] :false,
-                                onTap: () async {
-                                  setState(() {
-                                    exts[exts.keys.elementAt(i)]["enable"] = !exts[exts.keys.elementAt(i)]["enable"];
-                                  });
-                                  Shell().run("gnome-extensions ${exts[exts.keys.elementAt(i)]["enable"] ? "enable" : "disable"} ${exts.keys.elementAt(i)}");
-                                }),
-                          )
-                        ],
-                      ).animate(effects: [const FadeEffect()]),
-                    ),
-                  ),
-            ])
-      ],
+                          ).animate(effects: [const FadeEffect()]),
+                        ),
+                      ),
+                ]),
+          ),
+        ),
+      ),
     );
   }
 }
