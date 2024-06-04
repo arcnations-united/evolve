@@ -14,7 +14,7 @@ https://github.com/arcnations-united/evolve/releases
 Get access to alpha builds and support development -
 https://www.patreon.com/arcnations
 
-Themes
+# Themes
 
 As you would expect, it has all the obvious theming features of Gnome Tweaks minus the fonts part. You can change the GTK Theme, change icons and more. What Tweaks does not support as of now is GTK 4 theming and this is where Evolve starts to make a difference.
 
