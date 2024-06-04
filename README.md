@@ -5,6 +5,15 @@ The powerful and modern alternative to Gnome Tweaks with GTK-4.0 support and som
 ## Evolve - A brand new GNOME Theme Manager
 ![1](https://github.com/arcnations-united/evolve/assets/114287507/4a9c19b2-afb9-422d-aabd-401c6ecae3c8)
 
+
+## Getting Started
+
+Download the release build from here -
+https://github.com/arcnations-united/evolve/releases
+
+Get access to alpha builds and support development -
+https://www.patreon.com/arcnations
+
 Themes
 
 As you would expect, it has all the obvious theming features of Gnome Tweaks minus the fonts part. You can change the GTK Theme, change icons and more. What Tweaks does not support as of now is GTK 4 theming and this is where Evolve starts to make a difference.
