@@ -4,8 +4,5 @@ The powerful and modern alternative to Gnome Tweaks with GTK-4.0 support and som
 
 ## Getting Started
 
-Download the release build from here -
-https://arcnations.wixsite.com/nex-apps/post/evolve-a-brand-new-gnome-theme-manager
-
-Get access to alpha builds -
-https://www.patreon.com/arcnations
+Download the latest release build from [here](https://sites.google.com/view/evolve-gtk-theme-manager/home)
+Get access to alpha builds from [here](https://www.patreon.com/arcnations)
