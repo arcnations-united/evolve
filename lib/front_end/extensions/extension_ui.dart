@@ -31,19 +31,23 @@ class _ExtensionUiState extends State<ExtensionUi> {
   }
 
   populate() async {
-
+    exts.clear();
     await Future.delayed(1.microseconds);
     TabManager.freeze = true;
     widget.state();
-    String s = (await Shell().run("gnome-extensions list")).outText;
-    List l = s.split('\n');
-    for (int i = 0; i < l.length; i++) {
-      String info =
-          (await Shell().run("gnome-extensions info ${l[i]}")).outText;
-      exts.addAll({l[i]: getMap(info)});
+    try {
+      String s = (await Shell().run("gnome-extensions list")).outText;
+      List l = s.split('\n');
+      for (int i = 0; i < l.length; i++) {
+        String info =
+            (await Shell().run("gnome-extensions info ${l[i]}")).outText;
+        exts.addAll({l[i]: getMap(info)});
+      }
+      AppData.DataFile["maxExts"] = exts.length;
+      AppData().writeDataFile();
+    }  catch (e) {
+      // TODO
     }
-    AppData.DataFile["maxExts"] = exts.length;
-    AppData().writeDataFile();
     TabManager.freeze = false;
     widget.state();
   }
@@ -159,8 +163,8 @@ class _ExtensionUiState extends State<ExtensionUi> {
                 children: [
                     for (int i = 0; i < (exts.isNotEmpty?exts.length:(AppData.DataFile["maxExts"] ?? 10)); i++)
                       GestureDetector(
-                        onTap: () {
-                          Navigator.push(
+                        onTap: () async {
+                         await Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => ExtensionInfoPage(
@@ -172,6 +176,23 @@ class _ExtensionUiState extends State<ExtensionUi> {
                                         });
                                         populate();
                           });
+                        },
+                        onSecondaryTap: (){
+                          WidsManager().showMessage(title: "Info", message: "Delete this extension?", context: context,
+                              child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  GetButtons(onTap: (){
+                                    Navigator.pop(context);
+                                  }, text: "Close",),
+                                  SizedBox(width: 6,),
+                                  GetButtons(onTap: ()async{
+                                    Navigator.pop(context);
+                                    await Shell().run("gnome-extensions uninstall ${exts.keys.elementAt(i)}");
+                                    populate();
+                                  }, text: "Delete",)
+                                ],
+                              ));
                         },
                         child: Container(
                           color: ThemeDt.themeColors["altbg"],
@@ -350,7 +371,7 @@ String? installable;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: WidsManager().gtkAppBar(context),
       body: err?Center(
         child: Container(
             width: 500,

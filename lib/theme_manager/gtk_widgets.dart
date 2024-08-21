@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/svg.dart';
@@ -14,6 +15,103 @@ import 'gtk_to_theme.dart';
 class WidsManager {
   static int activeTab = 0;
   static List<String> tabs = ["Theme", "Icons", "Configs","Extensions","Settings", "About"];
+
+  gtkAppBar(context, {Widget? title, Color? backgroundColor ,Color? foregroundColor}){
+    return AppBar(
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      actions: [
+        Stack(
+          children: [
+           if(title!=null) Positioned(
+               top: 7,
+               right: 100,
+               child: title),
+            GestureDetector(
+                onPanUpdate: (dt){
+                  appWindow.startDragging();
+                },
+                onDoubleTap: (){
+                  appWindow.maximizeOrRestore();
+                },
+                child: Container(
+                  height: 700,
+                  width: MediaQuery.sizeOf(context).width-60,
+                  color: Colors.white.withOpacity(0.00001),)),
+          AnimatedPositioned(
+             right: 20,
+             top: 20,
+             duration: ThemeDt.d,
+             curve: ThemeDt.c,
+             child: Row(
+               children: [
+                 GestureDetector(
+                   onTap: (){
+                     appWindow.minimize();
+                   },
+                   child: Container(
+                     height: 15,
+                     width: 15,
+
+                     decoration: BoxDecoration(
+                       color: Colors.green,
+                       shape: BoxShape.circle
+                     ),
+                   ),
+                 ),
+                 SizedBox(width: 9,),
+                 GestureDetector(
+                   onTap: (){
+                     appWindow.maximizeOrRestore();
+                   },
+                   child: Container(
+                     height: 15,
+                     width: 15,
+
+                     decoration: BoxDecoration(
+                       color: Colors.orange,
+                       shape: BoxShape.circle
+                     ),
+                   ),
+                 ),
+                 SizedBox(width: 9,),
+                 GestureDetector(
+                   onTap: (){
+                     appWindow.close();
+                   },
+                   child: Container(
+                     height: 15,
+                     width: 15,
+
+                     decoration: BoxDecoration(
+                       color: Colors.redAccent,
+                       shape: BoxShape.circle
+                     ),
+                   ),
+                 ),
+               ],
+             ),
+           )
+
+          ],
+        ),
+
+      ],
+    );
+  }
+  notify(context,{String head="Info", required String message})async{
+    try{
+      await Shell().run("notify-send --app-name=Evolve --icon=${SystemInfo.home}/nex/apps/Evolve/iconfile.png \"$head\" \"$message\"");
+    }catch(E){
+      if(context!=null)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: WidsManager().getText(message, color: "bg", fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+  }
+
   Widget getContainer(
       {double borderOpacity = 1.0,
       double? mar,
@@ -42,7 +140,7 @@ class WidsManager {
         child: AnimatedBlurryContainer(
          // filter: ImageFilter.blur(sigmaY: 30,sigmaX: 30),
           //delay: 1.seconds,
-          blur:15,
+          blur:50,
           duration: 600.milliseconds,
           child: Container(
 
@@ -50,10 +148,10 @@ class WidsManager {
             width: width,
               padding: EdgeInsets.all(pad),
               decoration: BoxDecoration(
-                gradient:AppData.DataFile["GNOMEUI"]?null: LinearGradient(
+                gradient:(AppData.DataFile["GNOMEUI"]?? false)?null: LinearGradient(
                   colors: [
-                    ThemeDt.themeColors["altfg"]!.withOpacity(0.3),
-                    ThemeDt.themeColors["altfg"]!.withOpacity(0.01),
+                    ThemeDt.themeColors["bg"]!.withOpacity(0),
+                    ThemeDt.themeColors["bg"]!.withOpacity(0),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -91,6 +189,7 @@ class WidsManager {
   Text getText(String s,
       {double? size,
       bool? center,
+      bool right=false,
       bool? stylize,
       int? maxLines,
       String? color,
@@ -100,7 +199,7 @@ class WidsManager {
     size ??= AppData.DataFile["MAXSIZE"] == true ? 15 : 13;
     return Text(
       s,
-      textAlign: (center) ? TextAlign.center : null,
+      textAlign: (center) ? TextAlign.center : right?TextAlign.right:null,
       maxLines: maxLines,
       overflow: TextOverflow.fade,
       style: AppData.DataFile["GNOMEUI"] == true
@@ -227,7 +326,7 @@ class WidsManager {
           baseline: TextBaseline.alphabetic,
           child: Container(
 
-            decoration: AppData.DataFile["GNOMEUI"]?BoxDecoration(
+            decoration: AppData.DataFile["GNOMEUI"]??false?BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: ThemeDt.themeColors["altbg"],
                 boxShadow: [
@@ -241,7 +340,7 @@ class WidsManager {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: AnimatedBlurryContainer(
-               // delay: ThemeDt.d,
+               delay: Duration.zero,
               duration: Duration.zero,
               blur: AppData.DataFile["GNOMEUI"]?0: null,
               //  filter: AppData.DataFile["GNOMEUI"]?ImageFilter.blur():ImageFilter.blur(sigmaX: 30,sigmaY: 30),
@@ -249,17 +348,9 @@ class WidsManager {
                   padding: const EdgeInsets.all(10),
                   constraints: const BoxConstraints(maxWidth: 250),
                   decoration:AppData.DataFile["GNOMEUI"]?null:  BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          ThemeDt.themeColors["fg"]!.withOpacity(0.2),
-                          ThemeDt.themeColors["bg"]!.withOpacity(0.0),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ) ,
                       borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: ThemeDt.themeColors["fg"]!.withOpacity(0.1),
+                      color: ThemeDt.themeColors["fg"]!.withOpacity(0.5),
                       width: 1.4
                     )
                   ),
@@ -423,13 +514,13 @@ class WidsManager {
   }
 
   static String wallPath = "";
-  Widget gtkColumn({required List<Widget> children, width, Column? title}) {
+  Widget gtkColumn({required List<Widget> children, width, Column? title, String? color}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (title != null) title,
         WidsManager().getContainer(
-            colour: "altbg",
+            colour: color ?? "altbg",
             borderOpacity: 0.2,
             border: false,
             pad: 0,
@@ -443,7 +534,7 @@ class WidsManager {
                         padding: const EdgeInsets.all(12.0),
                         child: wid,
                       ),
-                      Container(
+                      if(children.length>1) Container(
                         height: 1,
                         color: ThemeDt.themeColors["bg"]?.withOpacity(0.9),
                       ),
@@ -456,9 +547,12 @@ class WidsManager {
   }
 
   Future<Widget> getWallpaperSample({String? wallPath}) async {
-    wallPath ??= (await Shell().run("""
+    if(File("${SystemInfo.home}/.NexData/compressed/img.jpg").existsSync()==false) {
+      wallPath = (await Shell().run("""
     gsettings get org.gnome.desktop.background picture-uri
     """)).outText.replaceAll("file://", "").replaceAll("'", "");
+    }
+    else wallPath="${SystemInfo.home}/.NexData/compressed/img.jpg";
     WidsManager.wallPath = wallPath;
     File wp = File(wallPath);
     if (await wp.exists() == false) {
@@ -511,6 +605,48 @@ class WidsManager {
         ));
   }
 }
+class GetAddRem extends StatefulWidget {
+  final IconData icoD1;
+  final IconData icoD2;
+  final Color icoColor;
+  final double value;
+  final double step;
+  final double max;
+  final double min;
+  final Function onTapIco;
+  const GetAddRem({super.key, this.icoD1 = Icons.add, this.icoD2 = Icons.remove, this.icoColor = Colors.white, required this.value, this.step=0.1, this.max=1, this.min=0, required this.onTapIco,});
+
+  @override
+  State<GetAddRem> createState() => _GetAddRemState();
+}
+
+class _GetAddRemState extends State<GetAddRem> {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        WidsManager().getText(""
+            "${widget.value.toString().substring(0,widget.value.toString().lastIndexOf(".")+1)}"
+            "${widget.value.toString().substring(widget.value.toString().lastIndexOf(".")+1).length>3?"${widget.value.toString().substring(widget.value.toString().lastIndexOf(".")+1,5)}":"${widget.value.toString().substring(widget.value.toString().lastIndexOf(".")+1)}"}"
+            "",size: 30),
+        Row(
+          children: [
+            GetButtons(onTap: (){
+              widget.onTapIco(widget.value+widget.step);
+
+            }, child: Icon(widget.icoD1,color: widget.icoColor,),),
+            SizedBox(width: 5,),
+            GetButtons(onTap: (){
+              widget.onTapIco(widget.value-widget.step);
+            }, child: Icon(widget.icoD2,color: widget.icoColor),),
+          ],
+        )
+      ],
+    );
+  }
+}
+
 
 class AdaptiveList extends StatefulWidget {
   final List<Widget> children;
@@ -632,50 +768,27 @@ class AnimatedBlurryContainer extends StatefulWidget {
   final Duration?  delay;
   final double?  blur;
   final Duration?  duration;
-  const AnimatedBlurryContainer({super.key, required this.child, this.delay, this.duration, this.blur});
+  final bool  plus;
+  const AnimatedBlurryContainer({super.key, required this.child, this.delay, this.duration, this.blur,  this.plus=false});
 
   @override
   State<AnimatedBlurryContainer> createState() => _AnimatedBlurryContainerState();
 }
 
-class _AnimatedBlurryContainerState extends State<AnimatedBlurryContainer> with TickerProviderStateMixin{
-  late AnimationController cnt;
-Timer? t;
-  @override
-  void initState() {
-    // TODO: implement initState
-    cnt=AnimationController(vsync: this,duration: widget.duration ?? ThemeDt.d,);
-    setForward();
-    super.initState();
-  }
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    t?.cancel();
-    cnt.dispose();
-    super.dispose();
-  }
+class _AnimatedBlurryContainerState extends State<AnimatedBlurryContainer> {
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: cnt,
-      builder: (BuildContext context, Widget? child) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(
-              sigmaY: cnt.value*(widget.blur ?? 5),
-              sigmaX: cnt.value*(widget.blur ?? 5),
-          ),
-        child: widget.child,
-        );
-      },
+    if(widget.blur==0)return widget.child;
+    return BackdropFilter(
+        filter: ImageFilter.blur(
+          tileMode: TileMode.decal,
+          sigmaY: (widget.blur ?? 5),
+          sigmaX: (widget.blur ?? 5),),
 
-    );
-  }
-
-  void setForward()async {
-  t=Timer(widget.delay ?? Duration.zero, () {
-    cnt.forward();
-  });
+    child: BackdropFilter(
+      filter:ColorFilter.mode(ThemeDt.themeColors["bg"]!.withOpacity(0.95), widget.plus?BlendMode.plus:BlendMode.luminosity),
+    child: widget.child,
+    ));
   }
 }
 
@@ -834,11 +947,13 @@ class GetButtons extends StatefulWidget {
   final Function() onTap;
   final child;
   final String? text;
+  final String? textCol;
   final bool? light;
   final bool? small;
   final bool? pillShaped;
   final bool? ghost;
   final bool? moreResponsive;
+  final double? opacity;
   final double? ltVal;
   const GetButtons(
       {this.ltVal,
@@ -850,7 +965,7 @@ class GetButtons extends StatefulWidget {
       required this.onTap,
       this.light,
       this.moreResponsive,
-      this.pillShaped});
+      this.pillShaped, this.opacity, this.textCol});
 
   @override
   _GetButtonsState createState() => _GetButtonsState();
@@ -918,43 +1033,51 @@ class _GetButtonsState extends State<GetButtons> {
         child: AnimatedScale(
           duration: Duration.zero,
           scale: widget.small ?? false ? 0.7 : 1,
-          child: AnimatedContainer(
-            // width: width,
-            decoration: BoxDecoration(
-                color: (widget.light ?? false)
-                    ? HSLColor.fromColor(buttonCol!)
-                        .withLightness(HSLColor.fromColor(buttonCol).lightness *
-                                    (widget.ltVal ?? 2) >
-                                1
-                            ? 1
-                            : HSLColor.fromColor(buttonCol).lightness *
-                                (widget.ltVal ?? 2))
-                        .toColor()
-                    : buttonCol,
-                borderRadius: BorderRadius.circular(
-                    widget.pillShaped ?? false ? 100 : 10),
-                border: Border.all(
-                  width: 2,
-                  color: (widget.ghost ?? false)
-                      ? ThemeDt.themeColors["fg"]!
-                      : ((tap) ? ThemeDt.themeColors["fg"] : null) ??
-                          Colors.transparent,
-                )),
-            duration: ThemeDt.d,
-            curve: ThemeDt.c,
-            padding: ((widget.moreResponsive ?? false)
-                ? EdgeInsets.all((hover) ? 10 : 15)
-                : widget.pillShaped ?? false
-                    ? const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10)
-                    : const EdgeInsets.all(8)),
-            margin: (widget.moreResponsive ?? false)
-                ? EdgeInsets.all((hover) ? 5 : 0)
-                : EdgeInsets.zero,
-            child: (widget.child == null)
-                ? WidsManager().getText(
-                    widget.text ?? "",
-                  )
-                : widget.child,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(
+                widget.pillShaped ?? false ? 100 : 10),
+            child: AnimatedBlurryContainer(plus: true,
+              blur: widget.opacity !=null ? 15:0,
+              child: AnimatedContainer(
+                // width: width,
+                decoration: BoxDecoration(
+                    color: ((widget.light ?? false)
+                        ? HSLColor.fromColor(buttonCol!)
+                            .withLightness(HSLColor.fromColor(buttonCol).lightness *
+                                        (widget.ltVal ?? 2) >
+                                    1
+                                ? 1
+                                : HSLColor.fromColor(buttonCol).lightness *
+                                    (widget.ltVal ?? 2))
+                            .toColor()
+                        : buttonCol)!.withOpacity(widget.opacity ?? 1),
+                    borderRadius: BorderRadius.circular(
+                        widget.pillShaped ?? false ? 100 : 10),
+                    border: Border.all(
+                      width: 2,
+                      color: (widget.ghost ?? false)
+                          ? ThemeDt.themeColors["fg"]!
+                          : ((tap) ? ThemeDt.themeColors["fg"] : null) ??
+                              Colors.transparent,
+                    )),
+                duration: ThemeDt.d,
+                curve: ThemeDt.c,
+                padding: ((widget.moreResponsive ?? false)
+                    ? EdgeInsets.all((hover) ? 10 : 15)
+                    : widget.pillShaped ?? false
+                        ? const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10)
+                        : const EdgeInsets.all(8)),
+                margin: (widget.moreResponsive ?? false)
+                    ? EdgeInsets.all((hover) ? 5 : 0)
+                    : EdgeInsets.zero,
+                child: (widget.child == null)
+                    ? WidsManager().getText(
+
+                        widget.text ?? "", color:  widget.textCol ?? "fg"
+                      )
+                    : widget.child,
+              ),
+            ),
           ),
         ),
       ),
@@ -1141,6 +1264,7 @@ class GetTextBox extends StatefulWidget {
   final double? width;
   final double? height;
   final String? hintText;
+  final String? tag;
   final String? initText;
   final bool? isSensitive;
   const GetTextBox(
@@ -1150,7 +1274,7 @@ class GetTextBox extends StatefulWidget {
       this.height,
       this.width,
       this.hintText,
-      this.initText});
+      this.initText, this.tag});
 
   @override
   State<GetTextBox> createState() => _GetTextBoxState();
@@ -1177,6 +1301,8 @@ class _GetTextBoxState extends State<GetTextBox> {
   @override
   Widget build(BuildContext context) {
     return WidsManager().getContainer(
+      blur: true,
+        colour: "transparent",
         pad: widget.height != null
             ? widget.height! < 70
                 ? 0
@@ -1189,6 +1315,9 @@ class _GetTextBoxState extends State<GetTextBox> {
           children: [
             Expanded(
               child: TextField(
+                onSubmitted: (tx){
+                  widget.onDone(tx);
+                },
                 obscureText: widget.isSensitive ?? false,
                 onChanged: (tx) {
                   setState(() {});
@@ -1228,7 +1357,7 @@ class _GetTextBoxState extends State<GetTextBox> {
                   widget.onDone(tx.text);
                 },
                 child: Icon(
-                  Icons.check_rounded,
+                  widget.tag=="src"?Icons.search:Icons.check_rounded,
                   color: ThemeDt.themeColors["fg"],
                 ),
               )
@@ -1331,3 +1460,6 @@ class _GetPopMenuButtonState extends State<GetPopMenuButton> {
         ));
   }
 }
+
+
+

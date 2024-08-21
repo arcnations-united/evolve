@@ -54,7 +54,7 @@ class _PreviewPageState extends State<PreviewPage> {
   Widget build(BuildContext context) {
     return  Scaffold(
       floatingActionButton: FloatingActionButton(
-        backgroundColor:const Color(0xffd1e1fd),
+        backgroundColor:const Color(0xff002844),
         onPressed: () async {
 
           t?.cancel();
@@ -63,7 +63,38 @@ class _PreviewPageState extends State<PreviewPage> {
               MaterialPageRoute(
                   builder: (context) => const WidgetGTK()));
         },
-child: const Icon(Icons.chevron_right),
+child: const Icon(Icons.chevron_right, color: Color(0xfffde3d1),),
+      ).animate(
+        effects: [
+          ShimmerEffect(
+            duration: 3.seconds,
+            size: 2,
+            color: Colors.white.withOpacity(0.4),
+            delay: 7.seconds
+          ),
+          ShimmerEffect(
+              duration: 3.seconds,
+              size: 2,
+              color: Colors.white.withOpacity(0.8),
+              delay: 14.seconds
+          ),ShimmerEffect(
+              duration: 3.seconds,
+              size: 2,
+              color: Colors.white.withOpacity(0.9),
+              delay: 21.seconds
+          ),ShimmerEffect(
+              duration: 3.seconds,
+              size: 2,
+              color: Colors.white,
+              delay: 28.seconds
+          ),ShimmerEffect(
+              duration: 3.seconds,
+              size: 2,
+              color: Colors.white,
+              delay: 35.seconds
+          ),
+
+        ]
       ),
       backgroundColor: const Color(0xffd1e1fd),
 body: Stack(

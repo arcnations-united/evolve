@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:process_run/process_run.dart';
 import 'gtk_widgets.dart';
+import 'image_resizer.dart';
 
 //edited how colours are fetched from gtk.css
 class ThemeDt {
@@ -23,7 +25,7 @@ class ThemeDt {
     "fg": const Color(0xffffffff),
     "altfg": const Color(0xffdcdcdc),
     "sltbg": const Color(0xff565656),
-    "rowSltBG": const Color(0xff2b2f37),
+    "rowSltBG": const Color(0xff727272),
     "rowSltLabel": const Color(0xffe3eeff),
   };
   static bool isIcoFolderMade = false;
@@ -158,7 +160,7 @@ gsettings get org.gnome.desktop.interface icon-theme
   }
 
   //Setters - Set mostly system level GTK Theme or Icons
-  setGTK3(name,  [context]) async{
+  static setGTK3(String name) async{
     if(name =="default")name="Adwaita";
     try {
       await Shell().run("""
@@ -167,25 +169,10 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       ThemeDt.GTK3=name;
       await ThemeDt().setTheme(respectSystem: false);
     }catch (e) {
-       if(context!=null) {
-         WidsManager().showMessage(
-            title: "Error",
-            message:
-            "GTK 3.0 theme could not be applied. Make sure you have user-themes extension installed.",
-            icon: Icons.error_rounded,
-            child: GetButtons(
-                text: "Close",
-                onTap: () {
-                  Navigator.pop(context);
-                }),
-            context: context);
-       }
-       else{
          print(e);
-       }
     }
   }
-  setGTK4(String pathToTheme, [context])async{
+  static setGTK4(String pathToTheme)async{
     try {
       Directory dir = Directory("${SystemInfo.home}/.config/gtk-4.0");
       if(await dir.exists()){
@@ -206,19 +193,36 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       GTK4 = pathToTheme.split("/").last.replaceAll("/", "");
       await fl.writeAsString(jsonEncode(m));
     }  catch (e) {
-    if(context!=null) {
-      WidsManager().showMessage(
-          title: "Error",
-          message: "The theme could not be applied!",
-          icon: Icons.error,
-          child: GetButtons(onTap: (){
-            Navigator.pop(context);
-          },text:"Close",),
-          context: context);
-    }
+   print(e);
     }
   }
-  setShell(String name, [context])async{
+  static setGTK4Isolate(String colonedTheme)async{
+    String home=colonedTheme.split(":").last;
+    String pathToTheme=colonedTheme.split(":").first;
+    try {
+      Directory dir = Directory("${home}/.config/gtk-4.0");
+      if(await dir.exists()){
+        await dir.delete(recursive: true);
+      }
+      if(pathToTheme=="default")return;
+
+      await Shell().run("""
+      cp -r $pathToTheme/gtk-4.0 ${home}/.config
+      """);
+      File fl = File("${home}/.config/gtk-4.0/theme-info.json");
+      Map m ={"THEME_NAME":pathToTheme.split("/").last.replaceAll("/", "")};
+      if(await fl.exists() == false){
+        await fl.create();
+      }else{
+        fl.delete();
+      }
+      GTK4 = pathToTheme.split("/").last.replaceAll("/", "");
+      await fl.writeAsString(jsonEncode(m));
+    }  catch (e) {
+   print(e);
+    }
+  }
+  static setShell(String name)async{
     if(name=="default"){
       name="Adwaita";
     }
@@ -230,21 +234,8 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
       await Shell().run("""dconf write /org/gnome/shell/extensions/user-theme/name $name""");
       ShellName=Name;
     }catch (e) {
-      if(context!=null){
-        WidsManager().showMessage(
-            title: "Warning",
-            message:
-                "Shell theme could not be applied. Make sure you have user-themes extension installed.",
-            icon: Icons.warning_rounded,
-            child: GetButtons(
-                text: "Close",
-                onTap: () {
-                  Navigator.pop(context);
-                }),
-            context: context);
-      }else{
         print(e);
-      }
+
     }
   }
   setTheme({bool? respectSystem, bool? dark}) async {
@@ -394,7 +385,18 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
     } catch (e) {
       print(e);
     }
-
+   if(colorMap["rowSltBG"]==null) {
+      HSLColor b = HSLColor.fromColor(colorMap["bg"]!);
+      if (b.lightness > 0.4) {
+        colorMap["rowSltBG"] = b.withLightness(b.lightness / 2).toColor();
+      } else {
+        double lt = b.lightness * 2;
+        if (lt > 1) {
+          lt = 0.86;
+        }
+        colorMap["rowSltBG"] = b.withLightness(lt).toColor();
+      }
+    }
     return colorMap;
   }
   static bool lightTheme=false;
@@ -403,7 +405,7 @@ gsettings set org.gnome.desktop.interface icon-theme "$packName"
     HSLColor bg = HSLColor.fromColor(themeColors["bg"]!);
     HSLColor fg = HSLColor.fromColor(themeColors["fg"]!);
     HSLColor sltBG = HSLColor.fromColor(themeColors["sltbg"]!);
-    HSLColor rowSltBG = HSLColor.fromColor(themeColors["rowSltBG"] ?? const Color(0xff2b2f37));
+    HSLColor rowSltBG = HSLColor.fromColor(themeColors["rowSltBG"] ?? const Color(0xff727272));
     HSLColor rowSltLabel = HSLColor.fromColor(themeColors["rowSltLabel"] ?? const Color(0xffe3eeff));
     HSLColor sltFG;
     HSLColor altBG;
@@ -497,8 +499,12 @@ String cmd = "gresource extract /home/arcnations/.themes/Yaru/gtk-3.0/gtk.gresou
 static String oldWallpaper="";
   Future<void> setWallpaper(String s) async{
     oldWallpaper=WidsManager.wallPath;
+    if(await File("${SystemInfo.home}/.NexData/compressed/img.jpg").exists()){
+     await File("${SystemInfo.home}/.NexData/compressed/img.jpg").delete();
+    }
+    compute(ImageResizer.reduceImageSizeAndQuality,"$s:${SystemInfo.home}");
    await Shell().run("""gsettings set org.gnome.desktop.background picture-uri 'file://$s'""");
-   await Shell().run("""gsettings set org.gnome.desktop.background picture-uri-dark 'file://$s'""");
+   await Shell(throwOnError: false).run("""gsettings set org.gnome.desktop.background picture-uri-dark 'file://$s'""");
   }
 
    Future<void> setFlatpakTheme(String globalAppliedTheme, BuildContext context) async {
@@ -509,8 +515,6 @@ isSensitive: true,
             Navigator.pop(context);
             try{
               Directory dir = Directory(globalAppliedTheme);
-
-              print(dir.parent.path);
               String run ="""
 bash -c "echo \"$txt\" | sudo -S flatpak override --filesystem=$globalAppliedTheme"
 bash -c "echo \"$txt\" | sudo -S flatpak override --env=GTK_THEME=${dir.path.split("/").last}"
@@ -530,36 +534,61 @@ class SystemInfo{
   //kinda late when I realised I needed this
   //stores system level info like home directory path and all
   static String home="";
+  static String shellVers = "";
+  static String exactShellVers = "";
   Future<void> getHome() async {
     home = ((await getApplicationDocumentsDirectory()).parent.path)
         .replaceAll("'", "");
   }
-
+  Future<void> getShellVersion() async{
+   try {
+     shellVers = (await Shell().run("gnome-shell --version")).outText;
+   }catch (e) {
+     WidsManager().notify(null,head: "ERROR!", message: "Can't determine Shell Version. Some features won't work properly.");
+   }
+     shellVers=shellVers.toLowerCase();
+     shellVers=shellVers.replaceAll("gnome shell ", "");
+     exactShellVers=shellVers;
+     if(shellVers.contains(".")){
+       shellVers=shellVers.substring(0,shellVers.indexOf("."));
+     }
+  }
   Future<int> isTheme(String path)async{
 
     int i =0;
     int j =0;
     //TODO gtk 3.x/4.x support
-    List<String>checkListIco=["apps","actions","categories","16x16","22x22", "24x24","64x64","128x128","index.theme", "animation", "panel"];
+    List<String>checkListIco=["apps","actions","categories","16x16","22x22", "24x24","64x64","128x128","index.theme", "animation", "panel", "symbolic"];
+    List<String>forbid=["0","1","2","3","4", "5","6","7","8", "9",];
     Directory dir = Directory(path);
     List l = dir.listSync();
     if(l.length==1){
       if(l[0]=="gnome-shell")return 1;
     }
+    if(checkListIco.contains(path.split("/").last))return 0;
+    if(forbid.contains(path.split("/").last[0]))return 0;
 if(path.contains(".themes")||path.contains(".icons")||path.contains(".config")) return 0;
 bool containsIndexTheme=false;
     for(var lst in l){
-      var folderName = lst.toString().split("/").last.replaceAll("'", "");
-      if(folderName=="index.theme"){
-        containsIndexTheme=true;
-      }
-     if(folderName.startsWith("gtk-")){
-        return 1;
-      }
-      else if(checkListIco.contains(folderName)){
-        j++;
-      }
-
+if(lst is Directory) {
+  //print("object");
+  var folderName = lst
+      .toString()
+      .split("/")
+      .last
+      .replaceAll("'", "");
+  if (folderName == "index.theme") {
+    containsIndexTheme = true;
+  }
+  if (folderName.startsWith("gtk-3")) {
+    if (File("${lst.path}/gtk-dark.css").existsSync()
+    && File("${lst.path}/gtk.css").existsSync()) {
+      return 1;
+    }
+  } else if (checkListIco.contains(folderName)) {
+    j++;
+  }
+}
     }
     if(j>0){
       if(containsIndexTheme)return 2;

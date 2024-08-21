@@ -14,7 +14,6 @@ import 'package:gtkthememanager/theme_manager/tab_manage.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:process_run/process_run.dart';
 
-import '../back_end/adaptive_theming.dart';
 
 class Appearances extends StatefulWidget {
   final Function() state;
@@ -72,6 +71,7 @@ class _AppearancesState extends State<Appearances> {
     } catch (e) {
       print("Error while getting AT+ Themes");
       print(e);
+      print("Directory listing fails when you have never installed any premium theme pack from AT, Patreon. You may ignore this.");
     }
     ThemeDt.ThemeNamePath = globalAppliedThemePath;
     setState(() {
@@ -211,8 +211,8 @@ bool largeAlbum=false;
                         wall = await WidsManager().getWallpaperSample();
                         File f = File(result.files.single.path!);
                         await getWallList(path: f.parent.path);
-                        await setAdaptiveTheme();
-                        widget.state();
+
+                          widget.state();
                       }
                     },
                     child: AnimatedContainer(
@@ -318,17 +318,20 @@ bool largeAlbum=false;
                                                 ) {
                                                   return GetButtons(
                                                       onTap: () async {
+
                                                         await ThemeDt()
                                                             .setWallpaper(
                                                                 wallList[index]
                                                                     .path);
-                                                        wall = await WidsManager()
-                                                            .getWallpaperSample();
-                                                        setState(() {
+                                                        wall = await WidsManager().getWallpaperSample();
+                                                        if(AppData.DataFile["AUTOTHEMECOLOR"]==true) {
 
-                                                        });
-                                                        await setAdaptiveTheme();
-                                                        widget.state();
+                                                          await ThemeDt().setTheme(respectSystem: true);
+
+                                                          setVals();
+                                                        }else {
+                                                          widget.state();
+                                                        }
                                                       },
                                                       light: true,
                                                       child: ClipRRect(
@@ -359,6 +362,8 @@ bool largeAlbum=false;
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: <Widget>[
+                                        WidsManager().getText("Major update coming in v1.6 for AT+ Themes.\nStay tuned ;)")
+                                        /*
                                         Row(
                                           children: [
                                             WidsManager()
@@ -462,15 +467,15 @@ widget: Column(
                                                         ThemeDt().setIcon(
                                                             packName: PThemes
                                                                     .themeMap.values.elementAt(index)["ICON"]);
-                                                        await ThemeDt().setGTK3(
+                                                        await ThemeDt.setGTK3(
                                                             PThemes.themeMap.values.elementAt(index)["THEME"],
-                                                            context);
-                                                        await ThemeDt().setGTK4(
+                                                            );
+                                                        await ThemeDt.setGTK4(
                                                             '${SystemInfo.home}/.themes/${PThemes.themeMap.values.elementAt(index)["THEME"]}',
-                                                            context);
-                                                        await ThemeDt().setShell(
+                                                            );
+                                                        await ThemeDt.setShell(
                                                             PThemes.themeMap.values.elementAt(index)["THEME"],
-                                                            context);
+                                                            );
                                                         ThemeDt()
                                                             .getIconThemeName();
                                                         wall = await WidsManager()
@@ -543,7 +548,7 @@ widget: Column(
                                               },
                                             ),
                                           ),
-                                        )
+                                        )*/
                                       ],
                                     ),
                             );
@@ -552,151 +557,6 @@ widget: Column(
                           autoplay: PThemes.themeMap.isNotEmpty? AppData.DataFile["AUTOPLAY"] ?? true : false,
                         ),
                       ),
-                      if((!globalAppliedThemePath.startsWith("/usr/"))&&ThemeManager.GTKThemeList.contains(globalAppliedThemePath))    const SizedBox(
-                        height: 10,
-                      ),
-                   if((!globalAppliedThemePath.startsWith("/usr/"))&&ThemeManager.GTKThemeList.contains(globalAppliedThemePath))   WidsManager().getTooltip(
-                        text:
-                            "Use Background image colours in applied GTK Theme.",
-
-                        child: GestureDetector(
-                          onTap: () async {
-                            String fle="";
-                            //change path to adaptive before entering
-                            if(!ThemeDt.GTK3.endsWith("-Adaptive")){
-                              fle="${SystemInfo.home}/.themes/${ThemeDt.GTK3}-Adaptive/gtk-3.0/${(isDark) ? "gtk-dark.css" : "gtk.css"}";
-                            Directory adapTheme = Directory("${SystemInfo.home}/.themes/${ThemeDt.GTK3}-Adaptive");
-                            if (await adapTheme.exists()==false){
-                              await adapTheme.create();
-                              await Shell().run("cp -T -r ${SystemInfo.home}/.themes/${ThemeDt.GTK3} ${SystemInfo.home}/.themes/${ThemeDt.GTK3}-Adaptive" );
-                            }
-                            }
-                            else {
-                              fle="${SystemInfo.home}/.themes/${ThemeDt.GTK3}/gtk-3.0/${(isDark) ? "gtk-dark.css" : "gtk.css"}";
-                            }
-                            File fl = File(fle);
-                            if (!(await fl.exists())) {
-                              WidsManager().showMessage(
-                                  title: "Error",
-                                  message:
-                                  "Only locally installed themes can be edited. Please download and install a theme if you don't have any local user themes.",
-                                  context: context);
-                              return;
-                            }
-                            Navigator.push(context, MaterialPageRoute(builder: (context)=>ChangeColors(filePath: fle, state: widget.state, editAccents: true,))).then((value) async {
-                              globalAppliedThemePath = await ThemeDt().getGTKThemePath();
-                              ThemeDt.isThemeFolderMade = await ThemeManager().populateThemeList();
-                              globalAppliedTheme = globalAppliedThemePath.split("/").last;
-                              widget.state();
-                            });
-                          },
-                          onSecondaryTap: (){
-                           showMenu(context: context, color: Colors.transparent, elevation:0,items: [
-                            PopupMenuItem(
-                                child: WidsManager().getContainer(blur:true,  child: WidsManager().getText("Toggle adaptive mode")),
-                              onTap: () async {
-
-                                        try {
-                                          if (AppData
-                                                  .DataFile["AUTOTHEMECOLOR"] ==
-                                              null) {
-                                            AppData.DataFile["AUTOTHEMECOLOR"] =
-                                                3;
-                                            await setAdaptiveTheme();
-                                          } else {
-                                            AppData.DataFile.remove(
-                                                "AUTOTHEMECOLOR");
-                                            String normalThemeName =
-                                                globalAppliedThemePath
-                                                    .split("/")
-                                                    .last;
-                                            normalThemeName =
-                                                normalThemeName.substring(
-                                                    0,
-                                                    normalThemeName
-                                                        .lastIndexOf("-"));
-                                            await ThemeDt().setGTK3(
-                                                normalThemeName, context);
-                                            await ThemeDt().setShell(
-                                                normalThemeName, context);
-                                            String themePath =
-                                                globalAppliedThemePath;
-                                            themePath = themePath.substring(
-                                                0, themePath.lastIndexOf("/"));
-                                            themePath =
-                                                "$themePath/$normalThemeName";
-                                            await ThemeDt()
-                                                .setGTK4(themePath, context);
-                                            globalAppliedThemePath =
-                                                await ThemeDt().getGTKThemePath();
-                                            ThemeDt.isThemeFolderMade =
-                                                await ThemeManager()
-                                                    .populateThemeList();
-                                            globalAppliedTheme =
-                                                globalAppliedThemePath
-                                                    .split("/")
-                                                    .last;
-                                            await ThemeDt()
-                                                .setTheme(respectSystem: true);
-                                            widget.state();
-                                          }
-                                          AppData().writeDataFile();
-
-                                                                                widget.state();
-                                        } catch (e) {
-                                          Navigator.pop(context);
-                                          setState(() {
-                                            settingColour=false;
-                                            AppData.DataFile["AUTOTHEMECOLOR"]=null;
-                                          });
-                                          WidsManager().showMessage(title: "Error", message: e.toString(), context: context);
-                                        }
-                              },
-                            )
-                           ],
-                               position: RelativeRect.fromLTRB(MediaQuery.sizeOf(context).width,
-                                   MediaQuery.sizeOf(context).height/4, 0, 0));
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: AnimatedMeshGradient(
-                              colors: settingColour?[
-                                Colors.white,
-                                Colors.blue[100]!,
-                                Colors.blue[400]!,
-                                Colors.indigo[900]!
-                              ]: AppData.DataFile["AUTOTHEMECOLOR"]==null?[
-                              ThemeDt.themeColors["altbg"]!,
-                                ThemeDt.themeColors["altbg"]!,
-                                ThemeDt.themeColors["altbg"]!,
-                                ThemeDt.themeColors["altbg"]!,
-                              ]:[
-                                ThemeDt.themeColors["fg"]!,
-                                ThemeDt.themeColors["bg"]!,
-                               ThemeDt.themeColors["sltbg"]!,
-                               ThemeDt.themeColors["bg"]!,
-                              ],
-                              options: AnimatedMeshGradientOptions(
-                              ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      WidsManager().getText(
-                                       settingColour?"Setting adaptive colour...":"Adaptive Colours",
-                                      ),
-                                      Icon(
-                                        Icons.auto_awesome,
-                                        color: ThemeDt.themeColors["fg"],
-                                      )
-                                    ],
-                                  ),
-                                )),
-                          ),
-                        ),
-                      )
                     ],
                   ),
                 ),
@@ -1008,9 +868,9 @@ widget: Column(
                       if(AppData.DataFile["FLATPAK"]==true){
                         await ThemeDt().setFlatpakTheme(globalAppliedThemePath, context);
                       }
-                        await ThemeDt().setGTK3(globalAppliedTheme, context);
-                        await ThemeDt().setGTK4(globalAppliedThemePath, context);
-                        await ThemeDt().setShell(globalAppliedTheme, context);
+                        await ThemeDt.setGTK3(globalAppliedTheme, );
+                        await ThemeDt.setGTK4(globalAppliedThemePath, );
+                        await ThemeDt.setShell(globalAppliedTheme, );
                         widget.state();
                       },
                       light: true,
@@ -1058,11 +918,11 @@ widget: Column(
                                       child: GestureDetector(
                                         onTap: () async {
                                           Navigator.pop(context);
-                                          await ThemeDt().setGTK3(
+                                          await ThemeDt.setGTK3(
                                               ThemeManager.GTKThemeList[i]
                                                   .split("/")
                                                   .last,
-                                              context);
+                                              );
                                           AppData.DataFile.remove("AUTOTHEMECOLOR");
 
                                           widget.state();
@@ -1154,8 +1014,8 @@ widget: Column(
                                       child: GestureDetector(
                                         onTap: () async {
                                           Navigator.pop(context);
-                                          await ThemeDt().setGTK4(
-                                              ThemeManager.GTKThemeList[i], context);
+                                          await ThemeDt.setGTK4(
+                                              ThemeManager.GTKThemeList[i], );
                                           AppData.DataFile.remove("AUTOTHEMECOLOR");
                                           setState(() {});
                                         },
@@ -1244,11 +1104,11 @@ widget: Column(
                                         child:GestureDetector(
                                           onTap: () async {
                                             Navigator.pop(context);
-                                            await ThemeDt().setShell(
+                                            await ThemeDt.setShell(
                                                 ThemeManager.GTKThemeList[i]
                                                     .split("/")
                                                     .last,
-                                                context);
+                                                );
                                             AppData.DataFile.remove("AUTOTHEMECOLOR");
                                             setState(() {});
                                           },
@@ -1344,65 +1204,18 @@ widget: Column(
     );
   }
 
-  Future<void> setAdaptiveTheme() async {
-
-     if(AppData.DataFile["AUTOTHEMECOLOR"]!=null){
-       showDialog(context: context,barrierColor: Colors.transparent, builder: (BuildContext context) {
-         return AnimatedBlurryContainer(
-           blur: 15,
-           child: Center(
-             child: WidsManager().getText("Applying Background Colour...", size: 20),
-           ),);
-       }, );
-       setState(() {
-       settingColour=true;
-     });
-
-      // await Future.delayed(Duration(seconds: 1));
-
-      await AdaptiveTheming().genColours( context);
-
-       globalAppliedThemePath = await ThemeDt().getGTKThemePath();
-       ThemeDt.isThemeFolderMade = await ThemeManager().populateThemeList();
-       globalAppliedTheme = globalAppliedThemePath.split("/").last;
-      try{
-        if (AdaptiveTheming
-                .paletteColours
-                .values
-                .length <=
-            AppData.DataFile[
-                "AUTOTHEMECOLOR"]) {
-          AppData.DataFile[
-                  "AUTOTHEMECOLOR"] =
-              "max";
-          AppData()
-              .writeDataFile();
-        }
-      }catch(e){
-        print(e);
-        //skip
-      }
-      await AdaptiveTheming().makeThemeAdaptive(filePath: globalAppliedThemePath, active: 0);
-       //await Future.delayed(Duration(seconds: 1));
-       AppData.DataFile["AUTOTHEMECOLOR"]=0;
-       await AppData().writeDataFile();
-       settingColour=false;
-       Navigator.pop(context);
-       widget.state();
-      // await Future.delayed(const Duration(milliseconds: 600));
-      // ThemeDt.d=const Duration(milliseconds: 300);
-    }
-  }
-
 
   Future<void> chooseAlbum() async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
     if (selectedDirectory != null) {
+      setState(() {
+        wall=CircularProgressIndicator();
+      });
       await getWallList(path: selectedDirectory);
       await ThemeDt().setWallpaper(wallList.first.path);
       wall = await WidsManager().getWallpaperSample();
-      await setAdaptiveTheme();
+
       widget.state();
     }
   }

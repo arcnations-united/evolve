@@ -46,7 +46,8 @@ class _NewThemeState extends State<NewTheme> {
     return ClipRRect(
       borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(12), bottomRight: Radius.circular(12)),
       child: Scaffold(
-        appBar: AppBar(
+        appBar: WidsManager().gtkAppBar(
+          context,
           backgroundColor: ThemeDt.themeColors["bg"],
           foregroundColor: ThemeDt.themeColors["fg"],
 

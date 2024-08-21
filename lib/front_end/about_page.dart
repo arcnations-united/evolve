@@ -120,8 +120,7 @@ class AboutPage extends StatelessWidget {
                     ghost: true,
                     text: "Patreon",
                     onTap: () async {
-                      await _launchUrl(
-                          Uri.parse("https://www.patreon.com/arcnations"));
+                      await _launchUrl(Uri.parse("https://www.patreon.com/arcnations"));
                     },
                   ).animate(
                       effects: [
@@ -159,8 +158,7 @@ class AboutPage extends StatelessWidget {
                   width: 400,
                   child: WidsManager().getText(
                       center: true,
-                      """I have conducted comprehensive testing using Everforest-GTK on Fedora 39/40 with GNOME 45/46 environment. For any issues encountered, please forward them to nexindia.dev@gmail.com. Kindly include the name of the theme you experienced issues with, along with details of your operating system and GNOME version. If available, please provide log outputs. Running the application from the terminal may also yield additional insights.
-        """,
+                      """Report problems to nexindia.dev@gmail.com Make sure to send the log output after starting the app from the terminal. If you have used the official install script then just run ~/nex/apps/Evolve/gtkthememanager in terminal. Mention the name of the page where you have faced the problem along with the link to the GTK theme which caused the issue if required.""",
                       size: 10),
                 ),
               ),
@@ -170,15 +168,21 @@ class AboutPage extends StatelessWidget {
               curve: ThemeDt.c,
               top: MediaQuery.sizeOf(context).height/2+200,
               left: (MediaQuery.sizeOf(context).width-(smallScreen?136:330))/2,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
                 children: [
-                  WidsManager().getText("Designed by  "),
-                  Text(
-                    'N E X',
-                    style: GoogleFonts.gruppo(
-                        color: ThemeDt.themeColors["fg"], fontSize: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      WidsManager().getText("Designed by  "),
+                      Text(
+                        'N E X',
+                        style: GoogleFonts.gruppo(
+                            color: ThemeDt.themeColors["fg"], fontSize: 15),
+                      ),
+                    ],
                   ),
+                  WidsManager().getText("Shell Version : ${SystemInfo.exactShellVers}",size: 9),
+
                 ],
               ),
             )

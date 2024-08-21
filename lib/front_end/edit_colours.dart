@@ -10,7 +10,6 @@ import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
 import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
 import 'package:gtkthememanager/theme_manager/tab_manage.dart';
 
-import '../back_end/adaptive_theming.dart';
 
 //manages wallpaper adaptive theming along with gtk colour edit
 //thought implementing here would help since we are already changing colours of gtk themes inside this page
@@ -82,14 +81,10 @@ class _ChangeColorsState extends State<ChangeColors> {
     await Future.delayed(const Duration(milliseconds: 100));
     satVal = HSLColor.fromColor(ThemeDt.themeColors["bg"]!).saturation;
     ltness = HSLColor.fromColor(ThemeDt.themeColors["bg"]!).lightness;
-    await AdaptiveTheming().genColours(context);
+    //await AdaptiveTheming().genColours(context);
     wall = await WidsManager().getWallpaperSample();
-    if (AppData.DataFile["AUTOTHEMECOLOR"] == "max") {
-      AppData.DataFile["AUTOTHEMECOLOR"] =
-          AdaptiveTheming.paletteColours.length - 1;
-    } else {
+
       active = AppData.DataFile["AUTOTHEMECOLOR"] ?? 0;
-    }
     isLoading = false;
 
     setState(() {});
@@ -111,7 +106,7 @@ class _ChangeColorsState extends State<ChangeColors> {
             refreshPage();
           },
           child: Scaffold(
-            appBar: AppBar(
+            appBar: WidsManager().gtkAppBar(context)(
               backgroundColor: ThemeDt.themeColors["bg"],
               foregroundColor: ThemeDt.themeColors["fg"],
             ),
@@ -245,11 +240,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                                                           message:
                                                               "Applying theme system-wide",
                                                           context: context);
-                                                      await AdaptiveTheming()
-                                                          .makeThemeAdaptive(
-                                                              filePath: widget
-                                                                  .filePath,
-                                                              active: active);
+                                                     // await AdaptiveTheming().makeThemeAdaptive(filePath: widget.filePath,active: active);
                                                       Navigator.pop(context);
                                                       Navigator.pop(context);
                                                     },
@@ -407,95 +398,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                                   ),
                                 ),
                               ),
-                            if (isLoading)
-                              WidsManager().getText("Generating Palette...")
-                            else
-                              AnimatedPositioned(
-                                duration: ThemeDt.d,
-                                curve: ThemeDt.c,
-                                top: TabManager.isLargeScreen ? 0 : 320,
-                                right: 0,
-                                child: AnimatedContainer(
-                                  duration: ThemeDt.d,
-                                  curve: ThemeDt.c,
-                                  height:
-                                      MediaQuery.sizeOf(context).height / 2 -
-                                          (TabManager.isLargeScreen ? 50 : 130),
-                                  width: MediaQuery.sizeOf(context).width -
-                                      (TabManager.isLargeScreen
-                                          ? (MediaQuery.sizeOf(context).width /
-                                                  (1.5)) +
-                                              50
-                                          : 40),
-                                  child: ListView(
-                                    children: [
-                                      for (int i = 0;
-                                          i <
-                                              AdaptiveTheming
-                                                  .paletteColours.keys.length;
-                                          i++)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 12.0),
-                                          child: GetButtons(
-                                              light: true,
-                                              ltVal: 1.2,
-                                              ghost: active == i,
-                                              onTap: () {
-                                                active = i;
-                                                Map themeCopy =
-                                                    ThemeDt.themeColors;
-                                                ThemeDt.themeColors
-                                                    .forEach((key, value) {
-                                                  themeCopy[key] =
-                                                      ColourManipulate().setHue(
-                                                          value,
-                                                          fromColor:
-                                                              AdaptiveTheming
-                                                                  .paletteColours
-                                                                  .values
-                                                                  .elementAt(i)
-                                                                  .values
-                                                                  .elementAt(
-                                                                      0));
-                                                });
-                                                satVal = HSLColor.fromColor(
-                                                        ThemeDt
-                                                            .themeColors["bg"]!)
-                                                    .saturation;
-                                                ltness = HSLColor.fromColor(
-                                                        ThemeDt
-                                                            .themeColors["bg"]!)
-                                                    .lightness;
-                                                refreshPage();
-                                              },
-                                              child: Container(
-                                                  height: 50,
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      WidsManager().getText(
-                                                          AdaptiveTheming
-                                                              .paletteColours
-                                                              .keys
-                                                              .elementAt(i)),
-                                                      Container(
-                                                          height: 30,
-                                                          child: getPalette(
-                                                              AdaptiveTheming
-                                                                  .paletteColours
-                                                                  .keys
-                                                                  .elementAt(
-                                                                      i))),
-                                                    ],
-                                                  ))),
-                                        )
-                                    ],
-                                  ),
-                                ),
-                              ),
+
                           ],
                         ),
                       ),
@@ -1108,15 +1011,15 @@ class _ChangeColorsState extends State<ChangeColors> {
                    if(!(widget.isDefinedFile ?? false)) {
                       if (widget.filePath.contains("/gtk-4.0/")) {
                         File fl = File(widget.filePath);
-                        ThemeDt().setGTK4(fl.parent.parent.path);
+                        ThemeDt.setGTK4(fl.parent.parent.path);
                       } else if (widget.filePath.contains("/gtk-3.0/")) {
                         File fl = File(widget.filePath);
-                        await ThemeDt().setGTK3("default");
-                        ThemeDt()
+                        await ThemeDt.setGTK3("default");
+                        ThemeDt
                             .setGTK3(fl.parent.parent.path.split("/").last);
                       } else if (widget.filePath.contains("/gnome-shell/")) {
                         File fl = File(widget.filePath);
-                        ThemeDt().setShell(fl.parent.parent.path.split("/").last);
+                        ThemeDt.setShell(fl.parent.parent.path.split("/").last);
                       }
                     }
                   },
@@ -1174,47 +1077,6 @@ class _ChangeColorsState extends State<ChangeColors> {
     }
   }
 
-  Row getPalette(key) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["bg"],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["altbg"],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["rowSltBG"],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["sltbg"],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["altfg"],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["rowSltLabel"],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            color: AdaptiveTheming.paletteColours[key]?["fg"],
-          ),
-        ),
-      ],
-    );
-  }
 
   void editPallete() {
     if (satVal == 0) satVal = 0.01;

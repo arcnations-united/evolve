@@ -1,10 +1,14 @@
 
+import 'dart:io';
+
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:gtkthememanager/front_end/config_manager/apply_config.dart';
+import 'package:gtkthememanager/front_end/config_manager/configs.dart';
 import 'package:gtkthememanager/front_end/inital_page.dart';
 import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
+
+import 'back_end/app_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,9 +41,11 @@ class _MyAppState extends State<MyApp> {
   }
   initiateTheme()async{
 
-      await SystemInfo().getHome();
-      await ThemeDt().setTheme();
-
+    await SystemInfo().getHome();
+    await SystemInfo().getShellVersion();
+    await ThemeDt().setTheme();
+    await AppData().fetchDataFile();
+    AppData.DataFile["GNOMEUI"]= false;
     setState(() {
       load=false;
     });
@@ -48,29 +54,11 @@ class _MyAppState extends State<MyApp> {
   bool load=true;
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
-      child: MaterialApp(
+    if(load)return Container();
+    return MaterialApp(
         theme: ThemeDt.themeData,
-      darkTheme: ThemeDt.themeData,
-          home: load?Center(child: CircularProgressIndicator(),):
-          CheckValidity(state: state,)).animate(
-        effects: [
-          ScaleEffect(
-              begin: const Offset(0.8,0.8),
-              end: const Offset(1,1),
-              duration: (ThemeDt.d.inMilliseconds+400).milliseconds,
-              curve: Curves.easeOutExpo,
-            delay: 500.milliseconds
-          ),
-          FadeEffect(
-              delay: 560.milliseconds,
-              duration:  ((ThemeDt.d.inMilliseconds)+400).milliseconds,
-
-    ),
-        ]
-      ),
-    );
+        darkTheme: ThemeDt.themeData,
+        home:
+        CheckValidity(state: state,));
   }
 }
-

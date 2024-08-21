@@ -26,12 +26,14 @@ class _ExtsSurfState extends State<ExtsSurf> {
 
   static Map results={};
   static Future<Map>search(txt)async{
+    String vrs=txt.split("{}").last;
+    txt=txt.split("{}").first;
 File src=File("search.json");
 if(src.existsSync())src.deleteSync();
    (await Shell().run("bash -c 'wget -O search.json https://extensions.gnome.org/extension-query/?search=\"$txt\"'"));
    List s = jsonDecode(src.readAsStringSync())["extensions"];
    for(int i=0;i<s.length;i++){
-     if(s[i]["shell_version_map"]["46"]!=null) {
+     if(s[i]["shell_version_map"][vrs]!=null) {
        results[s[i]["uuid"]]=s[i];
      }
    }
@@ -43,7 +45,7 @@ bool err=false;
   @override
   Widget build(BuildContext context) {
     return  Scaffold(
-      appBar: AppBar(),
+      appBar: WidsManager().gtkAppBar(context),
       body: load?Center(
         child: CircularProgressIndicator(
           color: ThemeDt.themeColors["fg"],strokeWidth: 8,
@@ -113,7 +115,7 @@ bool err=false;
                                     });
 
                                     try {
-                                      results = await compute(search, txt1);
+                                      results = await compute(search, "$txt1{}${SystemInfo.shellVers}");
                                     }  catch (e) {
                                      setState(() {
                                       txt1="";

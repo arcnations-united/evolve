@@ -1,13 +1,16 @@
 
+import 'dart:convert';
 import 'dart:isolate';
-
+import 'package:animations/animations.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gtkthememanager/back_end/app_data.dart';
 import 'package:gtkthememanager/front_end/app_specific_settings.dart';
 import 'package:gtkthememanager/front_end/config_manager/configs.dart';
 import 'package:gtkthememanager/front_end/install_theme.dart';
+import 'package:process_run/process_run.dart';
 import '../theme_manager/gtk_to_theme.dart';
 import '../theme_manager/gtk_widgets.dart';
 import 'about_page.dart';
@@ -26,7 +29,7 @@ class WidgetGTK extends StatefulWidget {
   @override
   State<WidgetGTK> createState() => _WidgetGTKState();
 }
-//added some welcome messages
+//added some welcome messagesjsonEncode
 class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
   bool firstLaunch=true;
   state(){
@@ -37,7 +40,7 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
 @override
   void initState() {
   AppData.DataFile["autoUpdateBackup"] ??= false  ;
-
+  AppData.DataFile["GNOMEUI"] ??=false; //DEPRECATED
     // TODO: implement initState
   setLaunch();
   if(AppData.DataFile["DONE"]==null){
@@ -45,14 +48,30 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
   }
     super.initState();
   }
+  bool minButton=false;
+  bool maxButton=false;
   setLaunch()async{
+    String s1=(await Shell().run("gsettings get org.gnome.desktop.wm.preferences button-layout")).outText;
+    winLeft = s1.replaceAll("'", "").endsWith("icon")?true:false;
+    minButton = s1.contains("minimize")?true:false;
+    maxButton = s1.contains("maximize")?true:false;
     await Future.delayed(500.milliseconds);
     if(AppData.DataFile["autoUpdateBackup"]){
-      Isolate.run( BackUpRunner.run());
+      //Isolate.run( BackUpRunner.run());
+      TabManager.backUPConfigBG=true;
+      WidsManager().notify(context, message: "Updating config.zip in background. DO NOT CLOSE THE APP!");
+      BackUpRunner.run();
+      WidsManager().notify(context, message: "Config updated successfully!");
+      DateTime time = DateTime.now();
+      AppData.DataFile["lastBackUp"] = "${time.day}-${time.month}-${time.year} at ${(time.hour).toString().length < 2 ? "0${time.hour}" : time.hour}:${(time.minute).toString().length < 2 ? "0${time.minute}" : time.minute}";
+      AppData().writeDataFile();
+      TabManager.backUPConfigBG=false;
+      state();
+
     }
-  setState(() {
-    firstLaunch=false;
-  });
+    setState(() {
+      firstLaunch=false;
+    });
   }
   showMessage() async {
   await Future.delayed(100.milliseconds);
@@ -95,7 +114,7 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
   }
   }
 
-
+bool winLeft=false;
   bool loading=true;
   @override
   Widget build(BuildContext context) {
@@ -104,22 +123,32 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
     TabManager.isSuperLarge = w>1000;
     return Scaffold(
       backgroundColor: ThemeDt.themeColors["bg"],
-      floatingActionButton: (WidsManager.activeTab<2 || WidsManager.activeTab==3)?GetButtons(
-        light: true,
-        ltVal: 1.2,
-        onTap: () {
-         if(WidsManager.activeTab==3) {
-           Navigator.push(context, MaterialPageRoute(builder: (context)=>const ExtsSurf())).then((value) {
-
-           });
-         }else{
-           Navigator.push(context, MaterialPageRoute(builder: (context)=>Installer(state: state,))).then((value) {
-
-          });
-         }
-        },
-        child: WidsManager().getText("Install New +"),
-      ):null,
+      floatingActionButton:
+           Row(
+             mainAxisAlignment: MainAxisAlignment.end,
+             children: [
+               if(WidsManager.activeTab==3)
+                 GestureDetector(
+                   onTap: (){
+                     if(WidsManager.activeTab==3) {
+                       Navigator.push(context, MaterialPageRoute(builder: (context)=>ExtsSurf())) ;
+                     }
+                   },
+                   child: WidsManager().getContainer(child: Icon(Icons.download_for_offline, color: ThemeDt.themeColors["fg"],))),
+               SizedBox( width: 10,),
+               if(WidsManager.activeTab<2)GestureDetector(
+                 onTap: (){
+                   if(WidsManager.activeTab==3) {
+                     Navigator.push(context, MaterialPageRoute(builder: (context)=>ExtsSurf())) ;
+                   }else{
+                     Navigator.push(context, MaterialPageRoute(builder: (context)=>Installer(state: (){setState(() {
+                     });},)));
+                   }
+                 },
+                   child: WidsManager().getContainer(child: Icon(Icons.archive, color: ThemeDt.themeColors["fg"],)
+                   )),
+             ],
+           ),
       body: AnimatedOpacity(
         duration: ThemeDt.d,
         opacity: TabManager.freeze?0.7:1.0,
@@ -186,8 +215,6 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
                             },
                             child: Icon(Icons.menu_rounded, color: ThemeDt.themeColors["fg"],)),
                       ),
-
-
                       AnimatedSlide(
                         duration: ThemeDt.d,
                         curve: ThemeDt.c,
@@ -199,12 +226,16 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
                       ),
                       Positioned(
                        // duration: ThemeDt.d, curve: ThemeDt.c,
-                        left:   (MediaQuery.sizeOf(context).width)-40, top: 18, bottom: 18,
+                        left:   (winLeft)?25:(MediaQuery.sizeOf(context).width)-80,
+                        top: 18, bottom: 18,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
-                          children: <Widget>[
+                          children:
+                          winLeft?
+                          <Widget>[
                            GestureDetector(
-                             onTap:(){
+                             onTap:()async{
+                               await AppData().writeDataFile();
                                appWindow.close();
                              },
                              child: Container(
@@ -215,7 +246,88 @@ class _WidgetGTKState extends State<WidgetGTK> with TickerProviderStateMixin {
                                  shape: BoxShape.circle
                                ),
                              ),
-                           )
+                           ),
+                        SizedBox(width: 10,),
+                        if(maxButton)
+                          GestureDetector(
+                             onTap:()async{
+
+                               appWindow.maximizeOrRestore();
+                             },
+                             child: Container(
+                               height: 15,
+                               width: 15,
+                               decoration: BoxDecoration(
+                                 color: Colors.orange[300],
+                                 shape: BoxShape.circle
+                               ),
+                             ),
+                           ),
+                            SizedBox(width: 10,),
+                        if(maxButton)
+                          GestureDetector(
+                             onTap:()async{
+
+                               appWindow.minimize();
+                             },
+                             child: Container(
+                               height: 15,
+                               width: 15,
+                               decoration: BoxDecoration(
+                                 color: Colors.green[300],
+                                 shape: BoxShape.circle
+                               ),
+                             ),
+                           ),
+                          ]:<Widget>[
+
+                            if(maxButton)
+                              GestureDetector(
+                                onTap:()async{
+
+                                  appWindow.minimize();
+                                },
+                                child: Container(
+                                  height: 15,
+                                  width: 15,
+                                  decoration: BoxDecoration(
+                                      color: Colors.green[300],
+                                      shape: BoxShape.circle
+                                  ),
+                                ),
+                              ),SizedBox(width: 10,),
+                            if(maxButton)
+                              GestureDetector(
+                                onTap:()async{
+
+                                  appWindow.maximizeOrRestore();
+                                },
+                                child: Container(
+                                  height: 15,
+                                  width: 15,
+                                  decoration: BoxDecoration(
+                                      color: Colors.orange[300],
+                                      shape: BoxShape.circle
+                                  ),
+                                ),
+                              ),
+                          SizedBox(width: 10,),
+
+
+                            GestureDetector(
+                              onTap:()async{
+                                await AppData().writeDataFile();
+                                appWindow.close();
+                              },
+                              child: Container(
+                                height: 15,
+                                width: 15,
+                                decoration: BoxDecoration(
+                                    color: Colors.red[300],
+                                    shape: BoxShape.circle
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),

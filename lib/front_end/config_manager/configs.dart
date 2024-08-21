@@ -371,6 +371,22 @@ bool filePresent=true;
                             ),
                           ),
                         ]),
+                    SizedBox(height: 15,),
+                    GestureDetector(
+                      onTap: (){
+                        WidsManager().showMessage(title: "Info", message: "With the v1.5+ releases, configurations are created more securely and efficiently.\n\nHowever, making the algorithm public would compromise its effectiveness. To access the latest release and export configurations for daily use, visit our Patreon page.", context: context);
+                      },
+                      child: Container(
+                        color: Colors.white.withOpacity(0.001),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: ThemeDt.themeColors["altfg"], size: 16,),
+                            WidsManager().getText("   This page is no more maintained")
+                          ],
+                        ),
+                      ),
+                    )
+
                   ],
                 ),
               ),
@@ -575,7 +591,6 @@ class BackUpRunner{
 
     File flFinal=File(backUPFile);
     File flNew=File("${AppData.DataFile["backUPLoc"]}/config.zip");
-    //print(AppData.DataFile);
     await flNew.writeAsBytes((await flFinal.readAsBytes()));
   }
   static backupTheme(backUPLoc) async {

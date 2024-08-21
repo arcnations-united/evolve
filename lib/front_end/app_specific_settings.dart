@@ -19,6 +19,28 @@ class AppSettings extends StatefulWidget {
 //the app specific settings page. Needs an UI update to match the rest of the application
 class _AppSettingsState extends State<AppSettings> {
   @override
+  void initState() {
+    // TODO: implement initState
+    fetchCacheData();
+    super.initState();
+  }
+  fetchCacheData() async {
+    Directory d= Directory("${SystemInfo.home}/.NexData/cache");
+    if(d.existsSync()) {
+      String s =(await Shell().run("du --max-depth=0 ${SystemInfo.home}/.NexData/cache")).outText;
+      s=s.substring(0,s.indexOf("\t")).trim();
+      try {
+        cacheDt=double.parse((double.parse(s)/1000).toString().substring(0,(double.parse(s)/1000).toString().indexOf(".")+3));
+      }  catch (e) {
+        cacheDt=(double.parse(s)/1000);
+      }
+      setState(() {
+
+      });
+    }
+  }
+  double cacheDt=0.0;
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -62,21 +84,7 @@ class _AppSettingsState extends State<AppSettings> {
                     },),
                 ],
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  WidsManager().getText("Respect GNOME UI"),
-                  GetToggleButton(value: AppData.DataFile["GNOMEUI"] ?? false,
-                    onTap: () async {
-                      AppData.DataFile["GNOMEUI"] ??= false;
-                      AppData.DataFile["GNOMEUI"] = !AppData.DataFile["GNOMEUI"];
-                     widget.state();
-                      AppData().writeDataFile();
-                      await AppSettingsToggle().updateGnomeUI();
-                      widget.state();
-                    },),
-                ],
-              ),  Row(
+      Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   WidsManager().getText("Toggle animations"),
@@ -89,6 +97,28 @@ class _AppSettingsState extends State<AppSettings> {
                       widget.state();
                     },),
                 ],
+              ), GestureDetector(
+                onTap: (){
+                  if(cacheDt>0.0){
+                    Directory d= Directory("${SystemInfo.home}/.NexData/cache");
+                    if(d.existsSync()){
+                      d.deleteSync(recursive: true);
+                    }
+                    setState(() {
+                      cacheDt=0.0;
+                    });
+                  }
+                },
+                child: Container(
+                  color: ThemeDt.themeColors["altbg"],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      WidsManager().getText("Clear cache ($cacheDt MB)"),
+                      Icon(Icons.chevron_right, color: ThemeDt.themeColors["fg"],)
+                    ],
+                  ),
+                ),
               ),
 
             ],

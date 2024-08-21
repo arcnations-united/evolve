@@ -447,7 +447,7 @@ double vl=0.0;
         }
       }
   }
-    await ThemeDt().setGTK3(appliedGTK3);
+    await ThemeDt.setGTK3(appliedGTK3);
     setState(() {
       vl++;
     });
@@ -461,7 +461,7 @@ double vl=0.0;
     setState(() {
       vl++;
     });
-    await ThemeDt().setShell(appliedSHELL);
+    await ThemeDt.setShell(appliedSHELL);
     setState(() {
       vl++;
     });
