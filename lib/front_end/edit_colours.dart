@@ -1,19 +1,14 @@
 import 'dart:io';
 import 'dart:ui';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:gtkthememanager/back_end/app_data.dart';
-import 'package:gtkthememanager/back_end/colour_info.dart';
-import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
-import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
-import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
-import 'package:gtkthememanager/theme_manager/tab_manage.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../back_end/app_data.dart';
+import '../back_end/gtk_theme_manager.dart';
+import '../theme_manager/gtk_to_theme.dart';
+import '../theme_manager/gtk_widgets.dart';
+import '../theme_manager/tab_manage.dart';
 
-
-//manages wallpaper adaptive theming along with gtk colour edit
-//thought implementing here would help since we are already changing colours of gtk themes inside this page
-//but I don't think it was useful enough. Should have opted for separate dart file but yeah its fine...
 class ChangeColors extends StatefulWidget {
   String filePath;
   final bool? editAccents;
@@ -22,7 +17,7 @@ class ChangeColors extends StatefulWidget {
   final bool? isDefinedFile;
   ChangeColors(
       {super.key,
-        this.isDefinedFile,
+      this.isDefinedFile,
       required this.filePath,
       required this.state,
       this.update,
@@ -33,11 +28,10 @@ class ChangeColors extends StatefulWidget {
 }
 
 class _ChangeColorsState extends State<ChangeColors> {
-  refreshPage(){
-    setState(() {
-
-    });
+  refreshPage() {
+    setState(() {});
   }
+
   bool isLoading = true;
   bool editAvailable = false;
   int active = 0;
@@ -84,12 +78,13 @@ class _ChangeColorsState extends State<ChangeColors> {
     //await AdaptiveTheming().genColours(context);
     wall = await WidsManager().getWallpaperSample();
 
-      active = AppData.DataFile["AUTOTHEMECOLOR"] ?? 0;
+    active = AppData.DataFile["AUTOTHEMECOLOR"] ?? 0;
     isLoading = false;
 
     setState(() {});
   }
-  bool isUpdatingState=false;
+
+  bool isUpdatingState = false;
   bool filterUse = false;
   double? hue, sat, val;
   bool showColorHex = false;
@@ -136,7 +131,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                       const SizedBox(
                         height: 25,
                       ),
-                      Container(
+                      SizedBox(
                         height: MediaQuery.sizeOf(context).height - 138,
                         child: Stack(
                           children: <Widget>[
@@ -145,12 +140,12 @@ class _ChangeColorsState extends State<ChangeColors> {
                                 duration: ThemeDt.d,
                                 curve: ThemeDt.c,
                                 left: 0,
-                                child: Container(
+                                child: SizedBox(
                                   height: 300,
                                   child: Stack(
                                     children: [
                                       Center(
-                                        child: Container(
+                                        child: SizedBox(
                                             width: MediaQuery.sizeOf(context)
                                                     .width /
                                                 (TabManager.isLargeScreen
@@ -208,7 +203,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                                                       size: 12)
                                                 ],
                                               ),
-                                              Container(
+                                              SizedBox(
                                                   width: 260,
                                                   child: WidsManager().getText(
                                                       "This is a sample generated window to help you understand how the colour might look. This does not represent the final result.\n\nYou may press Okay to apply the theme system-wide.",
@@ -240,7 +235,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                                                           message:
                                                               "Applying theme system-wide",
                                                           context: context);
-                                                     // await AdaptiveTheming().makeThemeAdaptive(filePath: widget.filePath,active: active);
+                                                      // await AdaptiveTheming().makeThemeAdaptive(filePath: widget.filePath,active: active);
                                                       Navigator.pop(context);
                                                       Navigator.pop(context);
                                                     },
@@ -398,7 +393,6 @@ class _ChangeColorsState extends State<ChangeColors> {
                                   ),
                                 ),
                               ),
-
                           ],
                         ),
                       ),
@@ -412,175 +406,191 @@ class _ChangeColorsState extends State<ChangeColors> {
       }
       return Scaffold(
         appBar: AppBar(
-          title: GestureDetector(
-            onPanUpdate: (dt) {
-              appWindow.startDragging();
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GetPopMenuButton(
-                  widgetOnTap:
-                  StatefulBuilder(builder: (BuildContext context,
-                      void Function(void Function()) setState) {
-                    return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          WidsManager().getText("Filter", size: 24),
-                          WidsManager().getText(
-                            "Edit group of colours according to set threshold.",
-                          ),
-                          if (filterUse)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(
-                                  height: 12,
-                                ),
-                                WidsManager().getText("Hue $hue", size: 10),
-                                Slider(
-                                    min: 0.0,
-                                    max: 360,
-                                    value: hue ?? 0.0,
-                                    activeColor:
-                                        HSLColor.fromAHSL(1, hue ?? 0, 0.5, 0.5)
-                                            .toColor(),
-                                    onChanged: (dt) {
-                                      setState(() {
-                                        hue = dt;
-                                      });
-                                      filterEditedIndex();
-                                      refreshPage();
-                                    }),
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                WidsManager()
-                                    .getText("Saturation $sat", size: 10),
-                                Slider(
-                                    value: sat ?? 0.0,
-                                    activeColor: ThemeDt.themeColors["altfg"],
-                                    onChanged: (dt) {
-                                      setState(() {
-                                        sat = dt;
-                                      });
-                                      filterEditedIndex();
-
-                                      refreshPage();
-                                    }),
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                WidsManager().getText("Value $val", size: 10),
-                                Slider(
-                                    value: val ?? 0.0,
-                                    activeColor: ThemeDt.themeColors["altfg"],
-                                    onChanged: (dt) {
-                                      setState(() {
-                                        val = dt;
-                                      });
-                                      filterEditedIndex();
-
-                                      refreshPage();
-                                    }),
-                                const SizedBox(height: 10,),
-
-                                GetTextBox(
-                                  hintText: "Search hexcode",
-                                  onDone: (tx){
-                                    String srcHex=tx;
-                                    srcHex= srcHex.replaceAll("#", "");
-                                    editedIndex.clear();
-                                    for(int i =0;i<col.length;i++){
-                                      if(col[i].hex.toLowerCase()==srcHex){
-                                        editedIndex.add(i);
-                                      }
-                                    }
-                                    refreshPage();
-                                    Navigator.pop(context);
-                                  },
-                                  height: 60,
-                                ),
-                                const SizedBox(height: 20,),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: <Widget>[
-                                    WidsManager().getText("Invert"),
-                                    GetToggleButton(
-                                        value: invertFilter,
-                                        onTap: () {
-                                          setState(() {
-                                            invertFilter = !invertFilter;
-                                          });
-                                          filterEditedIndex();
-                                          refreshPage();
-                                        })
-                                  ],
-                                ),
-                              ],
-                            ),
-                          const SizedBox(
-                            height: 13,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: <Widget>[
-                              WidsManager().getText("Use filter"),
-                              GetToggleButton(
-                                  value: filterUse,
-                                  onTap: () {
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                "USE RESPONSIBLY!    ",
+                style: GoogleFonts.inter(letterSpacing: -1, color: Colors.red),
+              ),
+              GetPopMenuButton(
+                widgetOnTap: StatefulBuilder(builder: (BuildContext context,
+                    void Function(void Function()) setState) {
+                  return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        WidsManager().getText("Filter", size: 24),
+                        WidsManager().getText(
+                          "Edit group of colours according to set threshold.",
+                        ),
+                        if (filterUse)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(
+                                height: 12,
+                              ),
+                              WidsManager().getText("Hue $hue", size: 10),
+                              Slider(
+                                  min: 0.0,
+                                  max: 360,
+                                  value: hue ?? 0.0,
+                                  activeColor:
+                                      HSLColor.fromAHSL(1, hue ?? 0, 0.5, 0.5)
+                                          .toColor(),
+                                  onChanged: (dt) {
                                     setState(() {
-                                      hue = null;
-                                      sat = null;
-                                      val = null;
-                                      filterUse = !filterUse;
+                                      hue = dt;
                                     });
-                                    if (filterUse) {
-                                      filterEditedIndex();
-                                    }
+                                    filterEditedIndex();
                                     refreshPage();
-                                  })
+                                  }),
+                              const SizedBox(
+                                height: 20,
+                              ),
+                              WidsManager()
+                                  .getText("Saturation $sat", size: 10),
+                              Slider(
+                                  value: sat ?? 0.0,
+                                  activeColor: ThemeDt.themeColors["altfg"],
+                                  onChanged: (dt) {
+                                    setState(() {
+                                      sat = dt;
+                                    });
+                                    filterEditedIndex();
+
+                                    refreshPage();
+                                  }),
+                              const SizedBox(
+                                height: 20,
+                              ),
+                              WidsManager().getText("Value $val", size: 10),
+                              Slider(
+                                  value: val ?? 0.0,
+                                  activeColor: ThemeDt.themeColors["altfg"],
+                                  onChanged: (dt) {
+                                    setState(() {
+                                      val = dt;
+                                    });
+                                    filterEditedIndex();
+
+                                    refreshPage();
+                                  }),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              GetTextBox(
+                                hintText: "Search hexcode",
+                                onDone: (tx) {
+                                  String srcHex = tx;
+                                  srcHex = srcHex.replaceAll("#", "");
+                                  editedIndex.clear();
+                                  for (int i = 0; i < col.length; i++) {
+                                    if (col[i].hex.toLowerCase() == srcHex) {
+                                      editedIndex.add(i);
+                                    }
+                                  }
+                                  refreshPage();
+                                  Navigator.pop(context);
+                                },
+                                height: 60,
+                              ),
+                              const SizedBox(
+                                height: 20,
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: <Widget>[
+                                  WidsManager().getText("Invert"),
+                                  GetToggleButton(
+                                      value: invertFilter,
+                                      onTap: () {
+                                        setState(() {
+                                          invertFilter = !invertFilter;
+                                        });
+                                        filterEditedIndex();
+                                        refreshPage();
+                                      })
+                                ],
+                              ),
                             ],
                           ),
-                        ]);
-                  }),
-                  child: Icon(
-                    Icons.filter_alt_rounded,
-                    color: ThemeDt.themeColors["fg"],
-                  ),
-                ),
-                    const SizedBox(width: 10,),
-                    GetPopMenuButton(
-                      tooltip: "HSV Adjustments",
-                      widgetOnTap: AnimatedCrossFade(
-                        duration: ThemeDt.d,
-                        crossFadeState: isUpdatingState?CrossFadeState.showSecond:CrossFadeState.showFirst,
-                        secondChild: Container(),
-                        firstChild: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(
+                          height: 13,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[
-                            GetTextBox(
-                              hintText: "Hue Factor",
-                              height: 50,
-                              onDone: (dt) async {
-                            Navigator.pop(context);
-                                if (double.tryParse(dt) == null ||
-                                    double.tryParse(dt)! >= 2.0 ||
-                                    double.tryParse(dt)! <= 0.0) {
-                                  WidsManager().showMessage(
-                                      title: "Error",
-                                      message:
-                                          "The value must be a floating number and between 0.0 - 1.0",
-                                      context: context);
-                                } else {
-                                  if(!filterUse) {
-                                    editedIndex.clear();
+                            WidsManager().getText("Use filter"),
+                            GetToggleButton(
+                                value: filterUse,
+                                onTap: () {
+                                  setState(() {
+                                    hue = null;
+                                    sat = null;
+                                    val = null;
+                                    filterUse = !filterUse;
+                                  });
+                                  if (filterUse) {
+                                    filterEditedIndex();
                                   }
+                                  refreshPage();
+                                })
+                          ],
+                        ),
+                      ]);
+                }),
+                child: Icon(
+                  Icons.filter_alt_rounded,
+                  color: ThemeDt.themeColors["fg"],
+                ),
+              ),
+              const SizedBox(
+                width: 10,
+              ),
+              GetPopMenuButton(
+                tooltip: "HSV Adjustments",
+                widgetOnTap: AnimatedCrossFade(
+                  duration: ThemeDt.d,
+                  crossFadeState: isUpdatingState
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  secondChild: Container(),
+                  firstChild: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      GetTextBox(
+                        hintText: "Hue Factor",
+                        height: 50,
+                        onDone: (dt) async {
+                          Navigator.pop(context);
+                          if (double.tryParse(dt) == null ||
+                              double.tryParse(dt)! >= 2.0 ||
+                              double.tryParse(dt)! <= 0.0) {
+                            WidsManager().showMessage(
+                                title: "Error",
+                                message:
+                                    "The value must be a floating number and between 0.0 - 1.0",
+                                context: context);
+                          } else {
+                            if (!filterUse) {
+                              editedIndex.clear();
+                            }
 
-                                  for (int i = 0; i < col.length; i++) {
-                                   if(!filterUse) {
-                                  editedIndex.add(i);
+                            for (int i = 0; i < col.length; i++) {
+                              if (!filterUse) {
+                                editedIndex.add(i);
+                                Color c = col[i];
+                                var hslColor = HSLColor.fromColor(c);
+                                double hueVal = hslColor.hue;
+                                if (hueVal == 0) hueVal = 2;
+                                hueVal = hueVal * double.parse(dt);
+                                if (hueVal >= 360.0) hueVal = 2;
+                                c = hslColor.withHue(hueVal).toColor();
+                                col[i] = c;
+                              } else {
+                                if (editedIndex.contains(i)) {
                                   Color c = col[i];
                                   var hslColor = HSLColor.fromColor(c);
                                   double hueVal = hslColor.hue;
@@ -589,193 +599,182 @@ class _ChangeColorsState extends State<ChangeColors> {
                                   if (hueVal >= 360.0) hueVal = 2;
                                   c = hslColor.withHue(hueVal).toColor();
                                   col[i] = c;
-                                } else{
-                                     if(editedIndex.contains(i)){
-                                       Color c = col[i];
-                                       var hslColor = HSLColor.fromColor(c);
-                                       double hueVal = hslColor.hue;
-                                       if (hueVal == 0) hueVal = 2;
-                                       hueVal = hueVal * double.parse(dt);
-                                       if (hueVal >= 360.0) hueVal = 2;
-                                       c = hslColor.withHue(hueVal).toColor();
-                                       col[i] = c;
-                                     }
-                                   }
-                              }
-
                                 }
-
-                                await ThemeManager().updateColors(
-                                    test: true,
-                                    path: widget.filePath,
-                                    col: col,
-                                    editedIndex: editedIndex,
-                                    oldCol: oldCol,
-                                    update: widget.update);
-                                oldCol = List.of(col);
-                                refreshPage();
-                                setState(() {});
-                                //hue=dt;
-                              },
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            GetTextBox(
-                              hintText: "Saturation Factor",
-                              height: 50,
-                              onDone: (dt) async {
-                                Navigator.pop(context);
-
-                                if (double.tryParse(dt) == null ||
-                                    double.tryParse(dt)! >= 2.0 ||
-                                    double.tryParse(dt)! <= 0.0) {
-                                  WidsManager().showMessage(
-                                      title: "Error",
-                                      message:
-                                          "The value must be a floating number and between 0.0 - 1.0",
-                                      context: context);
-                                } else {
-                               if(!filterUse) {
-                                editedIndex.clear();
                               }
+                            }
+                          }
 
-                              for (int i = 0; i < col.length; i++) {
-                                   if(filterUse){
+                          await ThemeManager().updateColors(
+                              test: true,
+                              path: widget.filePath,
+                              col: col,
+                              editedIndex: editedIndex,
+                              oldCol: oldCol,
+                              update: widget.update);
+                          oldCol = List.of(col);
+                          refreshPage();
+                          setState(() {});
+                          //hue=dt;
+                        },
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      GetTextBox(
+                        hintText: "Saturation Factor",
+                        height: 50,
+                        onDone: (dt) async {
+                          Navigator.pop(context);
 
+                          if (double.tryParse(dt) == null ||
+                              double.tryParse(dt)! >= 2.0 ||
+                              double.tryParse(dt)! <= 0.0) {
+                            WidsManager().showMessage(
+                                title: "Error",
+                                message:
+                                    "The value must be a floating number and between 0.0 - 1.0",
+                                context: context);
+                          } else {
+                            if (!filterUse) {
+                              editedIndex.clear();
+                            }
 
-                                     if(editedIndex.contains(i)){
-                                       Color c = col[i];
-                                       var hslColor = HSLColor.fromColor(c);
-                                       double saturationVal = hslColor.saturation;
-                                       if (saturationVal == 0) saturationVal = 0.01;
-                                       saturationVal =
-                                           saturationVal * double.parse(dt);
-                                       if (saturationVal >= 1.0) {
-                                         saturationVal =
-                                         (hslColor.saturation > 0.5) ? 0.95 : 0.5;
-                                       }
-                                       c = hslColor
-                                           .withSaturation(saturationVal)
-                                           .toColor();
-                                       col[i] = c;
-                                     }
-                                   } else{
-                                  editedIndex.add(i);
+                            for (int i = 0; i < col.length; i++) {
+                              if (filterUse) {
+                                if (editedIndex.contains(i)) {
                                   Color c = col[i];
                                   var hslColor = HSLColor.fromColor(c);
                                   double saturationVal = hslColor.saturation;
-                                  if (saturationVal == 0) saturationVal = 0.01;
+                                  if (saturationVal == 0) {
+                                    saturationVal = 0.01;
+                                  }
                                   saturationVal =
                                       saturationVal * double.parse(dt);
                                   if (saturationVal >= 1.0) {
-                                    saturationVal =
-                                        (hslColor.saturation > 0.5) ? 0.95 : 0.5;
+                                    saturationVal = (hslColor.saturation > 0.5)
+                                        ? 0.95
+                                        : 0.5;
                                   }
                                   c = hslColor
                                       .withSaturation(saturationVal)
                                       .toColor();
                                   col[i] = c;
                                 }
-                              }
-
-                                } await ThemeManager().updateColors(
-                                    test: true,
-                                    path: widget.filePath,
-                                    col: col,
-                                    editedIndex: editedIndex,
-                                    oldCol: oldCol,
-                                    update: widget.update);
-                                oldCol = List.of(col);
-                                refreshPage();
-                                setState(() {});
-                              },
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            GetTextBox(
-                              hintText: "Value Factor",
-                              height: 50,
-                              onDone: (dt) async {
-                                Navigator.pop(context);
-                                if(!filterUse)   editedIndex.clear();
-                                for (int i = 0; i < col.length; i++) {
-                                  if(filterUse){
-                                    if(editedIndex.contains(i)){
-                                      Color c = col[i];
-                                      var hslColor = HSLColor.fromColor(c);
-                                      double lightnessVal = hslColor.lightness;
-                                      if (lightnessVal == 0) lightnessVal = 0.01;
-                                      lightnessVal =
-                                          lightnessVal * double.parse(dt);
-                                      if (lightnessVal >= 1.0) {
-                                        lightnessVal =
-                                        (hslColor.lightness > 0.5) ? 0.95 : 0.5;
-                                      }
-                                      c = hslColor
-                                          .withLightness(lightnessVal)
-                                          .toColor();
-                                      col[i] = c;
-                                    }
-                                  } else{
-                                    editedIndex.add(i);
-                                    Color c = col[i];
-                                    var hslColor = HSLColor.fromColor(c);
-                                    double lightnessVal = hslColor.lightness;
-                                    if (lightnessVal == 0) lightnessVal = 0.01;
-                                    lightnessVal =
-                                        lightnessVal * double.parse(dt);
-                                    if (lightnessVal >= 1.0) {
-                                      lightnessVal =
-                                      (hslColor.lightness > 0.5) ? 0.95 : 0.5;
-                                    }
-                                    c = hslColor
-                                        .withLightness(lightnessVal)
-                                        .toColor();
-                                    col[i] = c;
-                                  }
+                              } else {
+                                editedIndex.add(i);
+                                Color c = col[i];
+                                var hslColor = HSLColor.fromColor(c);
+                                double saturationVal = hslColor.saturation;
+                                if (saturationVal == 0) saturationVal = 0.01;
+                                saturationVal =
+                                    saturationVal * double.parse(dt);
+                                if (saturationVal >= 1.0) {
+                                  saturationVal =
+                                      (hslColor.saturation > 0.5) ? 0.95 : 0.5;
                                 }
-                                await ThemeManager().updateColors(
-                                    test: true,
-                                    path: widget.filePath,
-                                    col: col,
-                                    editedIndex: editedIndex,
-                                    oldCol: oldCol,
-                                    update: widget.update);
-                                oldCol = List.of(col);
-                                refreshPage();
-                                setState(() {});
-                              },
-                            ),
-                          ],
-                        ),
+                                c = hslColor
+                                    .withSaturation(saturationVal)
+                                    .toColor();
+                                col[i] = c;
+                              }
+                            }
+                          }
+                          await ThemeManager().updateColors(
+                              test: true,
+                              path: widget.filePath,
+                              col: col,
+                              editedIndex: editedIndex,
+                              oldCol: oldCol,
+                              update: widget.update);
+                          oldCol = List.of(col);
+                          refreshPage();
+                          setState(() {});
+                        },
                       ),
-                      child: const Icon(Icons.auto_graph_rounded),
-                    ),
-                const SizedBox(width: 5,),
-                WidsManager().getTooltip(
-                  text: "Toggle colour codes",
-                  child: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          showColorHex = !showColorHex;
-                        });
-                      },
-                      icon: const Icon(Icons.info_outline_rounded)),
-                ),
-                if (!TabManager.isSuperLarge)
-                  WidsManager().getTooltip(
-                    text: "Reset changes",
-                    child: IconButton(
-                      icon: const Icon(Icons.undo_rounded),
-                      onPressed: () async {
-                        await resetColors();
-                      },
-                    ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      GetTextBox(
+                        hintText: "Value Factor",
+                        height: 50,
+                        onDone: (dt) async {
+                          Navigator.pop(context);
+                          if (!filterUse) editedIndex.clear();
+                          for (int i = 0; i < col.length; i++) {
+                            if (filterUse) {
+                              if (editedIndex.contains(i)) {
+                                Color c = col[i];
+                                var hslColor = HSLColor.fromColor(c);
+                                double lightnessVal = hslColor.lightness;
+                                if (lightnessVal == 0) lightnessVal = 0.01;
+                                lightnessVal = lightnessVal * double.parse(dt);
+                                if (lightnessVal >= 1.0) {
+                                  lightnessVal =
+                                      (hslColor.lightness > 0.5) ? 0.95 : 0.5;
+                                }
+                                c = hslColor
+                                    .withLightness(lightnessVal)
+                                    .toColor();
+                                col[i] = c;
+                              }
+                            } else {
+                              editedIndex.add(i);
+                              Color c = col[i];
+                              var hslColor = HSLColor.fromColor(c);
+                              double lightnessVal = hslColor.lightness;
+                              if (lightnessVal == 0) lightnessVal = 0.01;
+                              lightnessVal = lightnessVal * double.parse(dt);
+                              if (lightnessVal >= 1.0) {
+                                lightnessVal =
+                                    (hslColor.lightness > 0.5) ? 0.95 : 0.5;
+                              }
+                              c = hslColor
+                                  .withLightness(lightnessVal)
+                                  .toColor();
+                              col[i] = c;
+                            }
+                          }
+                          await ThemeManager().updateColors(
+                              test: true,
+                              path: widget.filePath,
+                              col: col,
+                              editedIndex: editedIndex,
+                              oldCol: oldCol,
+                              update: widget.update);
+                          oldCol = List.of(col);
+                          refreshPage();
+                          setState(() {});
+                        },
+                      ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+                child: const Icon(Icons.auto_graph_rounded),
+              ),
+              const SizedBox(
+                width: 5,
+              ),
+              WidsManager().getTooltip(
+                text: "Toggle colour codes",
+                child: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        showColorHex = !showColorHex;
+                      });
+                    },
+                    icon: const Icon(Icons.info_outline_rounded)),
+              ),
+              if (!TabManager.isSuperLarge)
+                WidsManager().getTooltip(
+                  text: "Reset changes",
+                  child: IconButton(
+                    icon: const Icon(Icons.undo_rounded),
+                    onPressed: () async {
+                      await resetColors();
+                    },
+                  ),
+                ),
+            ],
           ),
           backgroundColor: ThemeDt.themeColors["bg"],
           foregroundColor: ThemeDt.themeColors["fg"],
@@ -808,9 +807,14 @@ class _ChangeColorsState extends State<ChangeColors> {
                                                     ? (!TabManager.isSuperLarge
                                                         ? 200
                                                         : 300)
-                                                    : (!TabManager.isSuperLarge
+                                                    : (!TabManager.isLargeScreen
                                                         ? 80
-                                                        : 150)))
+                                                        : (MediaQuery.sizeOf(
+                                                                        context)
+                                                                    .width <
+                                                                750)
+                                                            ? 350
+                                                            : 200)))
                                             .floor()),
                             itemCount: col.length,
                             itemBuilder: (BuildContext context, int index) {
@@ -842,7 +846,7 @@ class _ChangeColorsState extends State<ChangeColors> {
                                           builder: (BuildContext context) {
                                             return Container(
                                                 child: Center(
-                                                    child: Container(
+                                                    child: SizedBox(
                                                         height: 600,
                                                         width: 380,
                                                         child: colourPick())));
@@ -879,8 +883,8 @@ class _ChangeColorsState extends State<ChangeColors> {
               ),
       );
     } catch (e) {
-      File fl=File("${widget.filePath}-new");
-      if(fl.existsSync())fl.deleteSync();
+      File fl = File("${widget.filePath}-new");
+      if (fl.existsSync()) fl.deleteSync();
       print(e);
       return Scaffold(
           backgroundColor: ThemeDt.themeColors["bg"],
@@ -927,7 +931,7 @@ class _ChangeColorsState extends State<ChangeColors> {
 
   Widget colourPick() {
     return WidsManager().getContainer(
-        width: TabManager.isSuperLarge ? 500 : 0,
+        width: TabManager.isLargeScreen ? 500 : 0,
         child: Column(
           children: [
             ColorPicker(
@@ -987,7 +991,6 @@ class _ChangeColorsState extends State<ChangeColors> {
                 ),
                 GetButtons(
                   onTap: () async {
-
                     if (editedIndex.length == col.length) {
                       Navigator.pop(context);
                       ThemeManager().updateColors(
@@ -997,7 +1000,6 @@ class _ChangeColorsState extends State<ChangeColors> {
                           editedIndex: editedIndex,
                           update: false,
                           test: false);
-
                     } else {
                       var path = "${widget.filePath}-new";
                       File fl = File(path);
@@ -1008,15 +1010,14 @@ class _ChangeColorsState extends State<ChangeColors> {
                         fl.rename(widget.filePath);
                       }
                     }
-                   if(!(widget.isDefinedFile ?? false)) {
+                    if (!(widget.isDefinedFile ?? false)) {
                       if (widget.filePath.contains("/gtk-4.0/")) {
                         File fl = File(widget.filePath);
                         ThemeDt.setGTK4(fl.parent.parent.path);
                       } else if (widget.filePath.contains("/gtk-3.0/")) {
                         File fl = File(widget.filePath);
                         await ThemeDt.setGTK3("default");
-                        ThemeDt
-                            .setGTK3(fl.parent.parent.path.split("/").last);
+                        ThemeDt.setGTK3(fl.parent.parent.path.split("/").last);
                       } else if (widget.filePath.contains("/gnome-shell/")) {
                         File fl = File(widget.filePath);
                         ThemeDt.setShell(fl.parent.parent.path.split("/").last);
@@ -1076,7 +1077,6 @@ class _ChangeColorsState extends State<ChangeColors> {
       // TODO
     }
   }
-
 
   void editPallete() {
     if (satVal == 0) satVal = 0.01;

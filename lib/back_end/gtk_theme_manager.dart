@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
+import '../theme_manager/gtk_to_theme.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:process_run/process_run.dart';
 

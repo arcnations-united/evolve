@@ -1,4 +1,10 @@
-RELEASE NOTES
-
-[v1.5 - Stable Release]
-    -Kept stable features intact for daily use.
+BRIEF RELEASE NOTES
+Evolve Core
+(V1.6 - Stable Release)
+    - All new AT+ Themes Section
+    - All new GNOME Extensions Store!
+    - Widget improvements and UI redesign
+        - New Text Field
+        - Updated Text Widgets
+        - Updated Container Widgets
+    - Removed first launch preview page

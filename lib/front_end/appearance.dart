@@ -1,19 +1,19 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:gtkthememanager/back_end/app_data.dart';
-import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
-import 'package:gtkthememanager/front_end/edit_colours.dart';
-import 'package:gtkthememanager/front_end/new_theme.dart';
-import 'package:gtkthememanager/theme_manager/atplus_themes.dart';
-import 'package:gtkthememanager/theme_manager/gtk_to_theme.dart';
-import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
-import 'package:gtkthememanager/theme_manager/tab_manage.dart';
-import 'package:mesh_gradient/mesh_gradient.dart';
+import '../back_end/app_data.dart';
+import '../back_end/gtk_theme_manager.dart';
+import '../front_end/at_plus_preview.dart';
+import '../front_end/edit_colours.dart';
+import '../theme_manager/atplus_themes.dart';
+import '../theme_manager/gtk_to_theme.dart';
+import '../theme_manager/gtk_widgets.dart';
+import '../theme_manager/tab_manage.dart';
 import 'package:process_run/process_run.dart';
-
 
 class Appearances extends StatefulWidget {
   final Function() state;
@@ -48,15 +48,15 @@ class _AppearancesState extends State<Appearances> {
     swipCtrl.dispose();
     super.dispose();
   }
-  bool settingColour=false;
+
+  bool settingColour = false;
 
   String globalAppliedThemePath = "";
   String globalAppliedTheme = "";
   List wallList = [];
-  List<Color>oldCol=[];
-  List<Color>col=[];
+  List<Color> oldCol = [];
+  List<Color> col = [];
   setVals() async {
-
     wall = await WidsManager().getWallpaperSample();
     await getWallList();
     globalAppliedThemePath = await ThemeDt().getGTKThemePath();
@@ -71,14 +71,34 @@ class _AppearancesState extends State<Appearances> {
     } catch (e) {
       print("Error while getting AT+ Themes");
       print(e);
-      print("Directory listing fails when you have never installed any premium theme pack from AT, Patreon. You may ignore this.");
+      print(
+          "Directory listing fails when you have never installed any premium theme pack from AT, Patreon. You may ignore this.");
     }
     ThemeDt.ThemeNamePath = globalAppliedThemePath;
     setState(() {
       opacity = 1.0;
     });
   }
+  final Map<String, Uint8List> _thumbnailCache = {};
 
+  Future<Uint8List> _getResizedImage(String path) async {
+    if (_thumbnailCache.containsKey(path)) {
+      return _thumbnailCache[path]!;
+    }
+    final resizedImage = await getResizedImage(path); // Your resizing logic
+    _thumbnailCache[path] = resizedImage;
+    return resizedImage;
+  }
+
+  Future<Uint8List> getResizedImage(String path) async {
+    final file = File(path);
+    final bytes = await file.readAsBytes();
+    final codec = await instantiateImageCodec(bytes, targetHeight: 180); // Resize dimensions
+    final frame = await codec.getNextFrame();
+    final resizedImage = await frame.image.toByteData(format: ImageByteFormat.png);
+    return resizedImage!.buffer.asUint8List();
+  }
+  bool activeAT = false;
   getWallList({String? path}) async {
     if (path == null) {
       String wallPath = (await Shell().run("""
@@ -101,7 +121,8 @@ class _AppearancesState extends State<Appearances> {
     }
     wallList = wallLstCopy;
   }
-bool largeAlbum=false;
+
+  bool largeAlbum = false;
   double opacity = 0.0;
   //ensure smooth transition with controlled opacity
   bool isDark = true;
@@ -191,7 +212,9 @@ bool largeAlbum=false;
             height: 10,
           ),
           AnimatedContainer(
-            height:(largeAlbum)?MediaQuery.sizeOf(context).height / 2: MediaQuery.sizeOf(context).height / 3.8,
+            height: (largeAlbum)
+                ? MediaQuery.sizeOf(context).height / 2
+                : MediaQuery.sizeOf(context).height / 3.8,
             duration: ThemeDt.d,
             curve: ThemeDt.c,
             child: Row(
@@ -200,7 +223,6 @@ bool largeAlbum=false;
               children: [
                 WidsManager().getTooltip(
                   text: "Click to set wallpaper",
-
                   child: GestureDetector(
                     onTap: () async {
                       FilePickerResult? result =
@@ -211,21 +233,18 @@ bool largeAlbum=false;
                         wall = await WidsManager().getWallpaperSample();
                         File f = File(result.files.single.path!);
                         await getWallList(path: f.parent.path);
-
-                          widget.state();
+                        widget.state();
                       }
                     },
                     child: AnimatedContainer(
-                        duration: ThemeDt.d,
-                        curve: ThemeDt.c,
-                        width:(largeAlbum)?100: MediaQuery.sizeOf(context).width / 3,
-                        child: wall).animate(
-                      effects: [
-                        FadeEffect(
-                          delay: 100.milliseconds
-                        )
-                      ]
-                    ),
+                            duration: ThemeDt.d,
+                            curve: ThemeDt.c,
+                            width: (largeAlbum)
+                                ? 100
+                                : MediaQuery.sizeOf(context).width / 3,
+                            child: wall)
+                        .animate(
+                            effects: [FadeEffect(delay: 100.milliseconds)]),
                   ),
                 ),
                 const SizedBox(
@@ -250,6 +269,8 @@ bool largeAlbum=false;
                           },
                           itemBuilder: (BuildContext context, int index) {
                             return WidsManager().getContainer(
+                              colour: index == 0 ? "altbg" : "fg",
+                              opacity: index == 0 ? 1.0 : 0.1,
                               child: (index == 0)
                                   ? Column(
                                       crossAxisAlignment:
@@ -257,7 +278,8 @@ bool largeAlbum=false;
                                       children: [
                                         Row(
                                           children: [
-                                            WidsManager().getText("Album",fontWeight: ThemeDt.boldText),
+                                            WidsManager().getText("Album",
+                                                fontWeight: ThemeDt.boldText),
                                             const SizedBox(
                                               width: 8,
                                             ),
@@ -271,11 +293,13 @@ bool largeAlbum=false;
                                                       ThemeDt.themeColors["fg"],
                                                   size: 13,
                                                 )),
-                                            const SizedBox(width: 10,),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
                                             GestureDetector(
                                                 onTap: () async {
                                                   setState(() {
-                                                    largeAlbum=!largeAlbum;
+                                                    largeAlbum = !largeAlbum;
                                                   });
                                                 },
                                                 child: Icon(
@@ -305,9 +329,23 @@ bool largeAlbum=false;
                                             : Expanded(
                                                 child: GridView.builder(
                                                 gridDelegate:
-                                                     SliverGridDelegateWithFixedCrossAxisCount(
-                                                        childAspectRatio: TabManager.isLargeScreen?1.3:2,
-                                                        crossAxisCount: TabManager.isSuperLarge?(MediaQuery.sizeOf(context).width/250).floor():TabManager.isLargeScreen?3:1,
+                                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                                        childAspectRatio:
+                                                            TabManager
+                                                                    .isLargeScreen
+                                                                ? 1.3
+                                                                : 2,
+                                                        crossAxisCount: TabManager
+                                                                .isSuperLarge
+                                                            ? (MediaQuery.sizeOf(
+                                                                            context)
+                                                                        .width /
+                                                                    250)
+                                                                .floor()
+                                                            : TabManager
+                                                                    .isLargeScreen
+                                                                ? 3
+                                                                : 1,
                                                         crossAxisSpacing: 8,
                                                         mainAxisSpacing: 8),
                                                 itemCount: wallList.length,
@@ -318,243 +356,323 @@ bool largeAlbum=false;
                                                 ) {
                                                   return GetButtons(
                                                       onTap: () async {
-
                                                         await ThemeDt()
                                                             .setWallpaper(
                                                                 wallList[index]
                                                                     .path);
-                                                        wall = await WidsManager().getWallpaperSample();
-                                                        if(AppData.DataFile["AUTOTHEMECOLOR"]==true) {
-
-                                                          await ThemeDt().setTheme(respectSystem: true);
-
-                                                          setVals();
-                                                        }else {
-                                                          widget.state();
-                                                        }
-                                                      },
-                                                      light: true,
-                                                      child: ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(5),
-                                                        child: Image.file(
-                                                          wallList[index],
-                                                          width:
-                                                              double.infinity,
-                                                          height:
-                                                              double.infinity,
-                                                          fit: BoxFit.cover,
-                                                        ),
-                                                      )).animate(
-                                                    effects: [
-                                                      FadeEffect(
-                                                          delay: 100.milliseconds
-
-                                                      ),
-                                                    ]
-                                                  );
-                                                },
-                                              ))
-                                      ],
-                                    )
-                                  : Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        WidsManager().getText("Major update coming in v1.6 for AT+ Themes.\nStay tuned ;)")
-                                        /*
-                                        Row(
-                                          children: [
-                                            WidsManager()
-                                                .getText('Set an AT+ theme',fontWeight: ThemeDt.boldText),
-                                            const SizedBox(width: 10,),
-                                            GestureDetector(
-                                                onTap: () async {
-                                                  setState(() {
-                                                    largeAlbum=!largeAlbum;
-                                                  });
-                                                },
-                                                child: Icon(
-                                                  Icons.photo_size_select_large,
-                                                  color:
-                                                  ThemeDt.themeColors["fg"],
-                                                  size: 13,
-                                                )),
-
-                                          ],
-                                        ),
-                                        Expanded(
-                                          child: Container(
-                                            margin: const EdgeInsets.only(top: 10),
-                                            height: 100,
-                                            child: GridView.builder(
-                                              gridDelegate:
-                                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                                      crossAxisCount:
-                                                          (MediaQuery.sizeOf(
-                                                                          context)
-                                                                      .width /
-                                                                  200)
-                                                              .floor(),
-                                                      crossAxisSpacing: 8,
-                                                      childAspectRatio: largeAlbum?1:2,
-                                                      mainAxisSpacing: 8),
-                                              shrinkWrap: true,
-                                              itemCount:
-                                                  PThemes.themeMap.length,
-                                              itemBuilder:
-                                                  (BuildContext context,
-                                                      int index) {
-                                             //   index = index + 1;
-                                                return WidsManager().getTooltip(
-widget: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    WidsManager().getText("${PThemes.themeMap.values.elementAt(index)["NAME"]} ${PThemes.themeMap.values.elementAt(index)["VERS"]!="N/A"?PThemes.themeMap.values.elementAt(index)["VERS"]:""}\n"
-        "\n${PThemes.themeMap.values.elementAt(index)["DESC"]}\n\n"
-        "${PThemes.themeMap.values.elementAt(index)["THEME"]}\n"
-        "${PThemes.themeMap.values.elementAt(index)["ICON"]}"),
-    Padding(
-      padding: const EdgeInsets.only(top: 18.0),
-      child: Row(
-        children: <Widget>[
-          Container(
-            height: 30,
-            width: 30,
-            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR1"]),
-          ),
-          Container(
-            height: 30,
-            width: 30,
-            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR2"]),
-          ),
-          Container(
-            height: 30,
-            width: 30,
-            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR3"]),
-          ),
-        ],),
-    ),
-                                                    ],
-),
-                                                  child: GetButtons(
-                                                    light: true,
-                                                    onTap: () async {
-                                                      //run AT+ Theme Apply
-                                                      if (index <= 4) {
-                                                        ThemeDt.ThemeNamePath =
-                                                            "${SystemInfo.home}/.themes/${PThemes.themeMap.values.elementAt(index)["THEME"]}";
-                                                        globalAppliedTheme =
-                                                            ThemeDt.ThemeNamePath
-                                                                    .split("/")
-                                                                .last;
-                                                        globalAppliedThemePath =
-                                                            ThemeDt.ThemeNamePath;
-                                                        await ThemeDt().setTheme(
-                                                            respectSystem: false,
-                                                            dark: isDark);
-                                                        widget.state();
-                                                        if (PThemes.themeMap.keys.elementAt(index) != 1) {
-                                                          await ThemeDt()
-                                                              .setWallpaper(
-                                                                  "${SystemInfo.home}/AT/UID${PThemes.themeMap.keys.elementAt(index)}/w1.png");
-                                                        } else {
-                                                          await ThemeDt()
-                                                              .setWallpaper(
-                                                                  "${SystemInfo.home}/AT/UID${PThemes.themeMap.keys.elementAt(index)}/w1.jpg");
-                                                        }
-                                                        ThemeDt().setIcon(
-                                                            packName: PThemes
-                                                                    .themeMap.values.elementAt(index)["ICON"]);
-                                                        await ThemeDt.setGTK3(
-                                                            PThemes.themeMap.values.elementAt(index)["THEME"],
-                                                            );
-                                                        await ThemeDt.setGTK4(
-                                                            '${SystemInfo.home}/.themes/${PThemes.themeMap.values.elementAt(index)["THEME"]}',
-                                                            );
-                                                        await ThemeDt.setShell(
-                                                            PThemes.themeMap.values.elementAt(index)["THEME"],
-                                                            );
-                                                        ThemeDt()
-                                                            .getIconThemeName();
                                                         wall = await WidsManager()
                                                             .getWallpaperSample();
-                                                        await getWallList();
-                                                        setState(() {});
-                                                      }
-                                                      AppData.DataFile[
-                                                          "ATPLUSTHEME"] = index;
-                                                      AppData().writeDataFile();
-                                                    },
-                                                    ghost: AppData.DataFile[
-                                                            "ATPLUSTHEME"] ==
-                                                        index,
-                                                    child: Container(
-                                                      height: 100,
-                                                      decoration:
-                                                    largeAlbum?  BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius
+                                                        widget.state();
+                                                      },
+                                                      light: true,
+                                                      child:  RepaintBoundary(
+                                                  child: FutureBuilder<Uint8List>(
+                                                  future: _getResizedImage(
+                                                    wallList[index].path,
+                                                  ),
+                                                  builder: (context, snapshot) {
+                                                  if (snapshot.connectionState == ConnectionState.done) {
+                                                  return ClipRRect(
+                                                  borderRadius:
+                                                  BorderRadius
+                                                      .circular(10),child: Image.memory(snapshot.data!, fit: BoxFit.cover,)).animate(
+                                                  effects: [
+                                                  FadeEffect(
+                                                  duration: 1.seconds
+                                                  ),
+                                                  SaturateEffect(
+                                                    begin: 3,
+                                                    end: 1,
+                                                    duration: 700.milliseconds,
+
+                                                  ),
+                                                  BlurEffect(
+                                                  begin: Offset(10, 10),
+                                                  delay: 200.milliseconds,
+                                                  duration: 3.seconds,
+                                                  curve: Curves.easeOutExpo
+                                                  ),
+                                                  ]
+                                                  );
+                                                  } else {
+                                                  return Container();
+                                                  }
+                                                  },)));}))])
+                                  : MouseRegion(
+                                      onEnter: (dt) {
+                                        activeAT = true;
+
+                                        setState(() {});
+                                      },
+                                      onExit: (dt) {
+                                        activeAT = false;
+                                        setState(() {});
+                                      },
+                                      child: Wrap(
+                                        runSpacing: 5,
+                                        spacing: 5,
+                                        children: <Widget>[
+                                          for (int i = 0;
+                                              i < PThemes.themeMap.length;
+                                              i++)
+                                            GestureDetector(
+                                              onTap: () async {
+                                                await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            AtPlusPreview(
+                                                              m: PThemes
+                                                                  .themeMap
+                                                                  .values
+                                                                  .elementAt(i),
+                                                              i: i,
+                                                            )));
+                                                await ThemeDt().setTheme();
+                                                await ThemeDt().setAppTheme();
+                                                setVals();
+                                              },
+                                              onSecondaryTapDown: (dt) {
+                                                showMenu(
+                                                    context: context,
+                                                    position:
+                                                        RelativeRect.fromLTRB(
+                                                            dt.globalPosition
+                                                                .dx,
+                                                            dt.globalPosition
+                                                                .dy,
+                                                            dt.globalPosition
+                                                                .dx,
+                                                            dt.globalPosition
+                                                                .dy),
+                                                    color: Colors.transparent,
+                                                    elevation: 0,
+                                                    items: [
+                                                      PopupMenuItem(
+                                                        child: WidsManager()
+                                                            .getContainer(
+                                                                blur: true,
+                                                                child: WidsManager()
+                                                                    .getText(
+                                                                        "Apply Theme-Pack")),
+                                                        onTap: () async {
+                                                          WidsManager().notify(
+                                                              context,
+                                                              message:
+                                                                  "Applying Theme-Pack. DO NOT CLOSE THE APPLICATION!");
+                                                          File conkyfile = File(
+                                                              "${SystemInfo.home}/AT/UID${PThemes.themeMap.keys.elementAt(i)}/conky/weather.sh");
+
+                                                          if (await conkyfile
+                                                                  .exists() ==
+                                                              false) {
+                                                            conkyfile = File(
+                                                                "${SystemInfo.home}/AT/UID${PThemes.themeMap.keys.elementAt(i)}/weather.sh");
+                                                          }
+                                                          if (await conkyfile
+                                                              .exists()) {
+                                                            String s =
+                                                                await conkyfile
+                                                                    .readAsString();
+                                                            if (s
+                                                                    .substring(
+                                                                        s.indexOf("wget") +
+                                                                            4,
+                                                                        s.indexOf(
+                                                                            "-O"))
+                                                                    .contains(
+                                                                        "-q") ==
+                                                                false) {
+                                                              List m = s.split(
+                                                                  "wget");
+                                                              s = "${m[0]}wget -q${m[1]}";
+                                                              conkyfile
+                                                                  .writeAsString(
+                                                                      s);
+                                                            }
+                                                          }
+                                                          Shell(
+                                                                  throwOnError:
+                                                                      false)
+                                                              .run(
+                                                                  """bash -c 'cd ${SystemInfo.home}/AT/UID${PThemes.themeMap.keys.elementAt(i)} && ${PThemes.themeMap.values.elementAt(i)["apply"]}'""");
+                                                          if (PThemes
+                                                                  .themeMap.keys
+                                                                  .elementAt(
+                                                                      i) ==
+                                                              6) {
+                                                            ThemeDt().setWallpaper(
+                                                                "${SystemInfo.home}/AT/UID6/w1.jpg");
+                                                            await Future
+                                                                .delayed(
+                                                                    3.seconds);
+                                                            Shell().run(
+                                                                "bash -c 'cp -r ~/.themes/Evergreen-GTK-AT/gtk-4.0 ~/.config'");
+                                                            wall = await WidsManager()
+                                                                .getWallpaperSample();
+                                                            setState(() {});
+                                                          } else if (PThemes
+                                                                  .themeMap.keys
+                                                                  .elementAt(
+                                                                      i) ==
+                                                              7) {
+                                                            ThemeDt().setWallpaper(
+                                                                "${SystemInfo.home}/AT/UID7/wallpaper/w1.png");
+                                                            await Future
+                                                                .delayed(
+                                                                    3.seconds);
+                                                            Shell().run(
+                                                                "bash -c 'cp -r ~/.themes/Gruvbox-Dark/gtk-4.0 ~/.config'");
+                                                            wall = await WidsManager()
+                                                                .getWallpaperSample();
+                                                            setState(() {});
+                                                          } else if (PThemes
+                                                                  .themeMap.keys
+                                                                  .elementAt(
+                                                                      i) ==
+                                                              8) {
+                                                            ThemeDt().setWallpaper(
+                                                                "${SystemInfo.home}/AT/UID8/wallpaper/w1.png");
+                                                            await Future
+                                                                .delayed(
+                                                                    3.seconds);
+                                                            Shell().run(
+                                                                "bash -c 'cp -r ~/.themes/Evergreen-Mac/gtk-4.0 ~/.config'");
+                                                            wall = await WidsManager()
+                                                                .getWallpaperSample();
+                                                            setState(() {});
+                                                          }
+                                                          await Future.delayed(
+                                                              3.seconds);
+                                                          await ThemeDt()
+                                                              .setTheme();
+                                                          await ThemeDt()
+                                                              .setAppTheme();
+                                                          setVals();
+                                                          widget.state();
+                                                          WidsManager().notify(
+                                                              context,
+                                                              message:
+                                                                  "Operation Complete.");
+                                                        },
+                                                      )
+                                                    ]);
+                                              },
+                                              child: Column(
+                                                children: [
+                                                  Container(
+                                                    width: 120,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          const BorderRadius.only(
+                                                              topLeft: Radius
                                                                   .circular(10),
-                                                          gradient:
-                                                              RadialGradient(
-                                                            radius:
-                                                                MediaQuery.sizeOf(
-                                                                            context)
-                                                                        .width /
-                                                                   ( 300),
-                                                            colors: [
-                                                              Colors.white,
-                                                              Color(
-                                                                  PThemes.themeMap.values.elementAt(index)
-                                                                      ["COLOR1"]),
-                                                              Color(
-                                                                  PThemes.themeMap.values.elementAt(index)
-                                                                      ["COLOR2"]),
-                                                              Color(PThemes
-                                                                      .themeMap.values.elementAt(index)["COLOR3"])
-                                                            ],
-                                                            center: Alignment
-                                                                .topRight,
-                                                          )):null,
-                                                      child: (largeAlbum)? Center(
-                                                            child: Padding(
-                                                              padding: const EdgeInsets.all(8.0),
-                                                              child:
-                                                         WidsManager().getContainer(
-                                                             child: WidsManager().getText(PThemes.themeMap.values.elementAt(index)["NAME"])),),
-                                                          ) : Row(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: <Widget>[
-                                                          Container(
-                                                            height: 20,
-                                                            width: 20,
-                                                            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR1"]),
-                                                          ), Container(
-                                                            height: 20,
-                                                            width: 20,
-                                                            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR2"]),
-                                                          ),Container(
-                                                            height: 20,
-                                                            width: 20,
-                                                            color: Color(PThemes.themeMap.values.elementAt(index)["COLOR3"]),
-                                                          ),
+                                                              topRight: Radius
+                                                                  .circular(
+                                                                      10)),
+                                                      border: Border(
+                                                        top: BorderSide(
+                                                          color: ThemeDt
+                                                              .themeColors[
+                                                                  "fg"]!
+                                                              .withOpacity(
+                                                                  0.26),
+                                                        ),
+                                                        right: BorderSide(
+                                                            color: ThemeDt
+                                                                .themeColors[
+                                                                    "fg"]!
+                                                                .withOpacity(
+                                                                    0.26)),
+                                                        left: BorderSide(
+                                                            color: ThemeDt
+                                                                .themeColors[
+                                                                    "fg"]!
+                                                                .withOpacity(
+                                                                    0.26)),
+                                                      ),
+                                                      gradient: LinearGradient(
+                                                        begin:
+                                                            Alignment.topLeft,
+                                                        end: Alignment
+                                                            .bottomRight,
+                                                        colors: [
+                                                          Color(int.parse(
+                                                              "0xff${PThemes.themeMap.values.elementAt(i)['color'][1]}")),
+                                                          Color(int.parse(
+                                                              "0xff${PThemes.themeMap.values.elementAt(i)['color'][0]}"))
                                                         ],
                                                       ),
                                                     ),
+                                                    padding: const EdgeInsets.all(10),
+                                                    child:
+                                                        WidsManager().getText(
+                                                      PThemes.themeMap.values
+                                                          .elementAt(
+                                                              i)['theme_name']
+                                                          .toString(),
+                                                    ),
                                                   ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        )*/
-                                      ],
+                                                  Container(
+                                                    width: 120,
+                                                    decoration: BoxDecoration(
+                                                        border: Border(
+                                                          bottom: BorderSide(
+                                                            color: ThemeDt
+                                                                .themeColors[
+                                                                    "fg"]!
+                                                                .withOpacity(
+                                                                    0.26),
+                                                          ),
+                                                          right: BorderSide(
+                                                              color: ThemeDt
+                                                                  .themeColors[
+                                                                      "fg"]!
+                                                                  .withOpacity(
+                                                                      0.26)),
+                                                          left: BorderSide(
+                                                              color: ThemeDt
+                                                                  .themeColors[
+                                                                      "fg"]!
+                                                                  .withOpacity(
+                                                                      0.26)),
+                                                        ),
+                                                        borderRadius:
+                                                            const BorderRadius.only(
+                                                                bottomRight:
+                                                                    Radius
+                                                                        .circular(
+                                                                            10),
+                                                                bottomLeft: Radius
+                                                                    .circular(
+                                                                        10)),
+                                                        color: ThemeDt
+                                                            .themeColors["bg"]),
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            10),
+                                                    child: WidsManager().getText(
+                                                        PThemes.themeMap.values
+                                                            .elementAt(i)[
+                                                                'description']
+                                                            .toString(),
+                                                        size: 9,
+                                                        maxLines: activeAT
+                                                            ? null
+                                                            : 2),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                        ],
+                                      ),
                                     ),
                             );
                           },
                           itemCount: PThemes.themeMap.isEmpty ? 1 : 2,
-                          autoplay: PThemes.themeMap.isNotEmpty? AppData.DataFile["AUTOPLAY"] ?? true : false,
+                          autoplay: PThemes.themeMap.isNotEmpty
+                              ? AppData.DataFile["AUTOPLAY"] ?? true
+                              : false,
                         ),
                       ),
                     ],
@@ -571,10 +689,10 @@ widget: Column(
             children: [
               Row(
                 children: [
-                  WidsManager().getText("Global Theme", fontWeight: ThemeDt.boldText),
+                  WidsManager()
+                      .getText("Global Theme", fontWeight: ThemeDt.boldText),
                   IconButton(
                       onPressed: () {
-
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
@@ -768,88 +886,68 @@ widget: Column(
                     elevation: 0,
                     itemBuilder: (BuildContext context) {
                       return [
-                        PopupMenuItem(enabled: false,child:  WidsManager().getContainer(blur: true,
+                        PopupMenuItem(
+                          enabled: false,
+                          child: WidsManager().getContainer(
+                            blur: true,
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                          for (int i = 0;
-                              i < ThemeManager.GTKThemeList.length;
-                              i++)
-                            if (checkGlobal(ThemeManager.GTKThemeList[i]))
-                           Padding(
-                             padding: const EdgeInsets.all( 4.0),
-                             child: GestureDetector( onTap: () async {
-                             Navigator.pop(context);
-                             ThemeDt.ThemeNamePath =
-                                 ThemeManager.GTKThemeList[i];
-                             await ThemeDt().setTheme(
-                                 respectSystem: false, dark: isDark);
-                             AppData.DataFile.remove("AUTOTHEMECOLOR");
-                             widget.state();},
-                                                          child: WidsManager().getText(
-                               ThemeManager.GTKThemeList[i]
-                                   .split("/")
-                                   .last,
-                               color: "fg"),
-                                                        ),
-                           ),
-                           Padding(
-                             padding: const EdgeInsets.all( 4.0),
-                             child: GestureDetector(
-                             onTap: () async {
-                             Navigator.pop(context);
-                             ThemeDt.ThemeNamePath="default";
-                             await ThemeDt().setTheme(respectSystem: false, dark: isDark);
-                             AppData.DataFile.remove("AUTOTHEMECOLOR");
-                             widget.state();
-                                                          },
-                                                          child: WidsManager().getText(
-                              "Adwaita",
-                               color: "fg"),
-                                                        ),
-                           ),
-
-                            ]
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  for (int i = 0;
+                                      i < ThemeManager.GTKThemeList.length;
+                                      i++)
+                                    if (checkGlobal(
+                                        ThemeManager.GTKThemeList[i]))
+                                      Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            Navigator.pop(context);
+                                            ThemeDt.ThemeNamePath =
+                                                ThemeManager.GTKThemeList[i];
+                                            await ThemeDt().setTheme(
+                                                respectSystem: false,
+                                                dark: isDark);
+                                            AppData.DataFile.remove(
+                                                "AUTOTHEMECOLOR");
+                                            widget.state();
+                                          },
+                                          child: WidsManager().getText(
+                                              ThemeManager.GTKThemeList[i]
+                                                  .split("/")
+                                                  .last,
+                                              color: "fg"),
+                                        ),
+                                      ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        Navigator.pop(context);
+                                        ThemeDt.ThemeNamePath = "default";
+                                        await ThemeDt().setTheme(
+                                            respectSystem: false, dark: isDark);
+                                        AppData.DataFile.remove(
+                                            "AUTOTHEMECOLOR");
+                                        widget.state();
+                                      },
+                                      child: WidsManager()
+                                          .getText("Adwaita", color: "fg"),
+                                    ),
+                                  ),
+                                ]),
                           ),
-                        ),
-                        )];
+                        )
+                      ];
                     },
                     child: WidsManager().getContainer(
                         width: (ThemeDt.ThemeNamePath != globalAppliedThemePath
-                            ? MediaQuery.sizeOf(context).width / 3 - 53
-                            : MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
+                                ? MediaQuery.sizeOf(context).width / 3
+                                : MediaQuery.sizeOf(context).width / 3 + 50) +
+                            (TabManager.isLargeScreen ? 0 : 60),
                         child: WidsManager().getText(
                             ThemeDt.ThemeNamePath.split("/").last,
                             maxLines: 1)),
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  GetButtons(
-                    onTap: () {
-                      if (ThemeDt.ThemeNamePath.contains("usr/share")) {
-                        WidsManager().showMessage(
-                            title: "Error",
-                            message:
-                                "Only locally installed themes can be modded. Please download and install a theme if you don't have any local user themes.",
-                            context: context);
-                        return;
-                      }
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => NewTheme(
-                                    name: ThemeDt.ThemeNamePath,
-                                  ))).then((value) async {
-                        setVals();
-                      });
-                    },
-                    light: true,
-                    child: Icon(
-                      Icons.add_rounded,
-                      color: ThemeDt.themeColors["fg"],
-                      size: 21,
-                    ),
                   ),
                   if (ThemeDt.ThemeNamePath != globalAppliedThemePath)
                     const SizedBox(
@@ -858,19 +956,26 @@ widget: Column(
                   if (ThemeDt.ThemeNamePath != globalAppliedThemePath)
                     GetButtons(
                       onTap: () async {
-                      if(ThemeDt.ThemeNamePath=="default") {
-                        globalAppliedTheme="default";
-                      }else{
+                        if (ThemeDt.ThemeNamePath == "default") {
+                          globalAppliedTheme = "default";
+                        } else {
                           globalAppliedTheme =
                               ThemeDt.ThemeNamePath.split("/").last;
                         }
                         globalAppliedThemePath = ThemeDt.ThemeNamePath;
-                      if(AppData.DataFile["FLATPAK"]==true){
-                        await ThemeDt().setFlatpakTheme(globalAppliedThemePath, context);
-                      }
-                        await ThemeDt.setGTK3(globalAppliedTheme, );
-                        await ThemeDt.setGTK4(globalAppliedThemePath, );
-                        await ThemeDt.setShell(globalAppliedTheme, );
+                        if (AppData.DataFile["FLATPAK"] == true) {
+                          await ThemeDt()
+                              .setFlatpakTheme(globalAppliedThemePath, context);
+                        }
+                        await ThemeDt.setGTK3(
+                          globalAppliedTheme,
+                        );
+                        await ThemeDt.setGTK4(
+                          globalAppliedThemePath,
+                        );
+                        await ThemeDt.setShell(
+                          globalAppliedTheme,
+                        );
                         widget.state();
                       },
                       light: true,
@@ -890,7 +995,8 @@ widget: Column(
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              WidsManager().getText("GTK 3.0 Theme",fontWeight: ThemeDt.boldText),
+              WidsManager()
+                  .getText("GTK 3.0 Theme", fontWeight: ThemeDt.boldText),
               Row(
                 children: [
                   PopupMenuButton(
@@ -902,46 +1008,51 @@ widget: Column(
                     elevation: 0,
                     itemBuilder: (BuildContext context) {
                       return [
-                        PopupMenuItem(enabled: false,child:
-                        WidsManager().getContainer(blur: true,
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                for (int i = 0;
-                                i < ThemeManager.GTKThemeList.length;
-                                i++)
-                                  if (ThemeManager.themeSupport[
-                                  ThemeManager.GTKThemeList[i]]?["gtk3"] ??
-                                      false)
-                                    Padding(
-                                      padding: const EdgeInsets.all( 4.0),
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          Navigator.pop(context);
-                                          await ThemeDt.setGTK3(
+                        PopupMenuItem(
+                          enabled: false,
+                          child: WidsManager().getContainer(
+                            blur: true,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  for (int i = 0;
+                                      i < ThemeManager.GTKThemeList.length;
+                                      i++)
+                                    if (ThemeManager.themeSupport[ThemeManager
+                                            .GTKThemeList[i]]?["gtk3"] ??
+                                        false)
+                                      Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            Navigator.pop(context);
+                                            await ThemeDt.setGTK3(
                                               ThemeManager.GTKThemeList[i]
                                                   .split("/")
                                                   .last,
-                                              );
-                                          AppData.DataFile.remove("AUTOTHEMECOLOR");
+                                            );
+                                            AppData.DataFile.remove(
+                                                "AUTOTHEMECOLOR");
 
-                                          widget.state();
-                                        },
-                                        child: WidsManager().getText(
-                                            ThemeManager.GTKThemeList[i]
-                                                .split("/")
-                                                .last,
-                                            color: "fg"),
+                                            widget.state();
+                                          },
+                                          child: WidsManager().getText(
+                                              ThemeManager.GTKThemeList[i]
+                                                  .split("/")
+                                                  .last,
+                                              color: "fg"),
+                                        ),
                                       ),
-                                    ),]
+                                ]),
                           ),
-                        ),
-                        )];
+                        )
+                      ];
                     },
                     child: WidsManager().getContainer(
-                        width: (MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
+                        width: (MediaQuery.sizeOf(context).width / 3) +
+                            (TabManager.isLargeScreen ? 0 : 60),
                         child:
-                        WidsManager().getText(ThemeDt.GTK3, maxLines: 1)),
+                            WidsManager().getText(ThemeDt.GTK3, maxLines: 1)),
                   ),
                   const SizedBox(
                     width: 8,
@@ -986,55 +1097,61 @@ widget: Column(
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              WidsManager().getText("GTK 4.0 Theme",fontWeight: ThemeDt.boldText),
+              WidsManager()
+                  .getText("GTK 4.0 Theme", fontWeight: ThemeDt.boldText),
               Row(
                 children: [
                   PopupMenuButton(
-                    tooltip: "",
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
-                    ),
-                    color: Colors.transparent,
-                    elevation: 0,
-                    itemBuilder: (BuildContext context) {
-                      return [
-                        PopupMenuItem(enabled: false,child:
-                        WidsManager().getContainer(blur: true,
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                for (int i = 0;
-                                i < ThemeManager.GTKThemeList.length;
-                                i++)
-                                  if (ThemeManager.themeSupport[
-                                  ThemeManager.GTKThemeList[i]]?["gtk4"] ??
-                                      false)
-                                    Padding(
-                                      padding: const EdgeInsets.all( 4.0),
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          Navigator.pop(context);
-                                          await ThemeDt.setGTK4(
-                                              ThemeManager.GTKThemeList[i], );
-                                          AppData.DataFile.remove("AUTOTHEMECOLOR");
-                                          setState(() {});
-                                        },
-                                        child: WidsManager().getText(ThemeManager
-                                            .GTKThemeList[i]
-                                            .split("/")
-                                            .last),
-                                      ),
-                                    ),]
-                          ),
-                        ),
-                        )];
-                    },
-                    child: WidsManager().getContainer(
-                        width:( MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
-                        child: WidsManager().getText(
-                            ThemeDt.GTK4 ?? "Not Applied",
-                            maxLines: 1))),
-
+                      tooltip: "",
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      color: Colors.transparent,
+                      elevation: 0,
+                      itemBuilder: (BuildContext context) {
+                        return [
+                          PopupMenuItem(
+                            enabled: false,
+                            child: WidsManager().getContainer(
+                              blur: true,
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    for (int i = 0;
+                                        i < ThemeManager.GTKThemeList.length;
+                                        i++)
+                                      if (ThemeManager.themeSupport[ThemeManager
+                                              .GTKThemeList[i]]?["gtk4"] ??
+                                          false)
+                                        Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: GestureDetector(
+                                            onTap: () async {
+                                              Navigator.pop(context);
+                                              await ThemeDt.setGTK4(
+                                                ThemeManager.GTKThemeList[i],
+                                              );
+                                              AppData.DataFile.remove(
+                                                  "AUTOTHEMECOLOR");
+                                              setState(() {});
+                                            },
+                                            child: WidsManager().getText(
+                                                ThemeManager.GTKThemeList[i]
+                                                    .split("/")
+                                                    .last),
+                                          ),
+                                        ),
+                                  ]),
+                            ),
+                          )
+                        ];
+                      },
+                      child: WidsManager().getContainer(
+                          width: (MediaQuery.sizeOf(context).width / 3) +
+                              (TabManager.isLargeScreen ? 0 : 60),
+                          child: WidsManager().getText(
+                              ThemeDt.GTK4 ?? "Not Applied",
+                              maxLines: 1))),
                   const SizedBox(
                     width: 10,
                   ),
@@ -1076,58 +1193,63 @@ widget: Column(
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              WidsManager().getText("Gnome Shell",fontWeight: ThemeDt.boldText),
+              WidsManager()
+                  .getText("Gnome Shell", fontWeight: ThemeDt.boldText),
               Row(
                 children: [
                   PopupMenuButton(
-                      tooltip: "",
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      color: Colors.transparent,
-                      elevation: 0,
-                      itemBuilder: (BuildContext context) {
-                        return [
-                          PopupMenuItem(enabled: false,child:
-                          WidsManager().getContainer(blur: true,
+                    tooltip: "",
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    color: Colors.transparent,
+                    elevation: 0,
+                    itemBuilder: (BuildContext context) {
+                      return [
+                        PopupMenuItem(
+                          enabled: false,
+                          child: WidsManager().getContainer(
+                            blur: true,
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   for (int i = 0;
-                                  i < ThemeManager.GTKThemeList.length;
-                                  i++)
-                                    if (ThemeManager.themeSupport[
-                                    ThemeManager.GTKThemeList[i]]?["shell"] ??
+                                      i < ThemeManager.GTKThemeList.length;
+                                      i++)
+                                    if (ThemeManager.themeSupport[ThemeManager
+                                            .GTKThemeList[i]]?["shell"] ??
                                         false)
                                       Padding(
-                                        padding: const EdgeInsets.all( 4.0),
-                                        child:GestureDetector(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: GestureDetector(
                                           onTap: () async {
                                             Navigator.pop(context);
                                             await ThemeDt.setShell(
-                                                ThemeManager.GTKThemeList[i]
-                                                    .split("/")
-                                                    .last,
-                                                );
-                                            AppData.DataFile.remove("AUTOTHEMECOLOR");
+                                              ThemeManager.GTKThemeList[i]
+                                                  .split("/")
+                                                  .last,
+                                            );
+                                            AppData.DataFile.remove(
+                                                "AUTOTHEMECOLOR");
                                             setState(() {});
                                           },
-                                          child: WidsManager().getText(ThemeManager
-                                              .GTKThemeList[i]
-                                              .split("/")
-                                              .last),
+                                          child: WidsManager().getText(
+                                              ThemeManager.GTKThemeList[i]
+                                                  .split("/")
+                                                  .last),
                                         ),
-                                      ),]
-                            ),
+                                      ),
+                                ]),
                           ),
-                          )];
-                      },
-                      child:  WidsManager().getContainer(
-                          width: (MediaQuery.sizeOf(context).width / 3)+(TabManager.isLargeScreen?0:60),
-                          child: WidsManager()
-                              .getText(ThemeDt.ShellName, maxLines: 1)),
+                        )
+                      ];
+                    },
+                    child: WidsManager().getContainer(
+                        width: (MediaQuery.sizeOf(context).width / 3) +
+                            (TabManager.isLargeScreen ? 0 : 60),
+                        child: WidsManager()
+                            .getText(ThemeDt.ShellName, maxLines: 1)),
                   ),
-
                   const SizedBox(
                     width: 10,
                   ),
@@ -1169,12 +1291,13 @@ widget: Column(
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              WidsManager().getText("Toggle Dark Mode",fontWeight: ThemeDt.boldText),
+              WidsManager()
+                  .getText("Toggle Dark Mode", fontWeight: ThemeDt.boldText),
               WidsManager().getTooltip(
-
                 text:
                     "This does not relate to system-wide dark or light mode. This simply means which css file the app would use to theme its colour - gtk.css or gtk-dark.css",
-                child: GetToggleButton(value: isDark,
+                child: GetToggleButton(
+                  value: isDark,
                   onTap: () async {
                     isDark = !isDark;
                     await ThemeDt()
@@ -1185,7 +1308,9 @@ widget: Column(
               ),
             ],
           ),
-          const SizedBox(height: 10,),
+          const SizedBox(
+            height: 10,
+          ),
           Align(
               alignment: Alignment.bottomRight,
               child: GetButtons(
@@ -1194,23 +1319,32 @@ widget: Column(
                       await FilePicker.platform.pickFiles();
 
                   if (result != null) {
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=>ChangeColors(filePath: result.files.single.path!, state: widget.state, isDefinedFile:true, update: false,)));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ChangeColors(
+                                  filePath: result.files.single.path!,
+                                  state: widget.state,
+                                  isDefinedFile: true,
+                                  update: false,
+                                )));
                   }
-                  },
-
-                text: "Open CSS file", light: true,pillShaped: true,))
+                },
+                text: "Open CSS file",
+                light: true,
+                pillShaped: true,
+              ))
         ],
       ),
     );
   }
-
 
   Future<void> chooseAlbum() async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
     if (selectedDirectory != null) {
       setState(() {
-        wall=CircularProgressIndicator();
+        wall = const CircularProgressIndicator();
       });
       await getWallList(path: selectedDirectory);
       await ThemeDt().setWallpaper(wallList.first.path);

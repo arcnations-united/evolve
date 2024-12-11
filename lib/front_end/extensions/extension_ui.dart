@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:gtkthememanager/back_end/app_data.dart';
-import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
-import 'package:gtkthememanager/theme_manager/gtk_widgets.dart';
-import 'package:gtkthememanager/theme_manager/tab_manage.dart';
+import '../../back_end/app_data.dart';
+import '../../back_end/gtk_theme_manager.dart';
+import '../../theme_manager/gtk_widgets.dart';
+import '../../theme_manager/tab_manage.dart';
 import 'package:process_run/process_run.dart';
 
 import '../../theme_manager/gtk_to_theme.dart';
@@ -31,6 +31,7 @@ class _ExtensionUiState extends State<ExtensionUi> {
   }
 
   populate() async {
+    extLoad = true;
     exts.clear();
     await Future.delayed(1.microseconds);
     TabManager.freeze = true;
@@ -42,10 +43,14 @@ class _ExtensionUiState extends State<ExtensionUi> {
         String info =
             (await Shell().run("gnome-extensions info ${l[i]}")).outText;
         exts.addAll({l[i]: getMap(info)});
+        setState(() {});
       }
       AppData.DataFile["maxExts"] = exts.length;
       AppData().writeDataFile();
-    }  catch (e) {
+      setState(() {
+        extLoad = false;
+      });
+    } catch (e) {
       // TODO
     }
     TabManager.freeze = false;
@@ -90,7 +95,7 @@ class _ExtensionUiState extends State<ExtensionUi> {
     } catch (e) {
       m["desc"] = "N/A";
     }
-   /* try {
+    /* try {
       if (!info.contains("Enabled:")) {
         throw 42;
       }
@@ -110,12 +115,13 @@ class _ExtensionUiState extends State<ExtensionUi> {
       if (!info.contains("State:")) {
         throw 42;
       }
-      m["enable"] = ["ACTIVE","ENABLED",].contains(info
-                  .substring(
-                      info.indexOf("State:") + "State:".length,
-                      info.indexOf(
-                          "\n", info.indexOf("State:") + "State:".length))
-                  .trim())
+      m["enable"] = [
+        "ACTIVE",
+        "ENABLED",
+      ].contains(info
+              .substring(info.indexOf("State:") + "State:".length,
+                  info.indexOf("\n", info.indexOf("State:") + "State:".length))
+              .trim())
           ? true
           : false;
     } catch (e) {
@@ -136,21 +142,25 @@ class _ExtensionUiState extends State<ExtensionUi> {
     return m;
   }
 
+  bool extLoad = true;
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: MediaQuery.sizeOf(context).height-130,
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height - 130,
           child: SingleChildScrollView(
             child: WidsManager().gtkColumn(
-                width: TabManager.isSuperLarge?900.0:MediaQuery.sizeOf(context).width-((TabManager.isLargeScreen)?170:0),
+                width: TabManager.isSuperLarge
+                    ? 900.0
+                    : MediaQuery.sizeOf(context).width -
+                        ((TabManager.isLargeScreen) ? 170 : 0),
                 title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    WidsManager()
-                        .getText("GNOME Extensions", fontWeight: ThemeDt.boldText),
+                    WidsManager().getText("GNOME Extensions",
+                        fontWeight: ThemeDt.boldText),
                     WidsManager().getText(
                       "Right click more options.",
                       color: "altfg",
@@ -161,114 +171,154 @@ class _ExtensionUiState extends State<ExtensionUi> {
                   ],
                 ),
                 children: [
-                    for (int i = 0; i < (exts.isNotEmpty?exts.length:(AppData.DataFile["maxExts"] ?? 10)); i++)
-                      GestureDetector(
-                        onTap: () async {
-                         await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => ExtensionInfoPage(
-                                        m: exts.values.elementAt(i),
-                                        uuid: exts.keys.elementAt(i),
-                                      ))).then((val){
-                                        setState(() {
-                                          exts={};
-                                        });
-                                        populate();
+                  for (int i = 0;
+                      i <
+                          (!extLoad
+                              ? exts.length
+                              : (AppData.DataFile["maxExts"] ?? 10));
+                      i++)
+                    GestureDetector(
+                      onTap: () async {
+                        await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ExtensionInfoPage(
+                                      m: exts.values.elementAt(i),
+                                      uuid: exts.keys.elementAt(i),
+                                    ))).then((val) {
+                          setState(() {
+                            exts = {};
                           });
-                        },
-                        onSecondaryTap: (){
-                          WidsManager().showMessage(title: "Info", message: "Delete this extension?", context: context,
-                              child: Row(
+                          populate();
+                        });
+                      },
+                      onSecondaryTap: () {
+                        WidsManager().showMessage(
+                            title: "Info",
+                            message: "Delete this extension?",
+                            context: context,
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  GetButtons(onTap: (){
+                              children: [
+                                GetButtons(
+                                  onTap: () {
                                     Navigator.pop(context);
-                                  }, text: "Close",),
-                                  SizedBox(width: 6,),
-                                  GetButtons(onTap: ()async{
+                                  },
+                                  text: "Close",
+                                ),
+                                const SizedBox(
+                                  width: 6,
+                                ),
+                                GetButtons(
+                                  onTap: () async {
                                     Navigator.pop(context);
-                                    await Shell().run("gnome-extensions uninstall ${exts.keys.elementAt(i)}");
+                                    await Shell().run(
+                                        "gnome-extensions uninstall ${exts.keys.elementAt(i)}");
                                     populate();
-                                  }, text: "Delete",)
-                                ],
-                              ));
-                        },
-                        child: Container(
-                          color: ThemeDt.themeColors["altbg"],
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      FutureWid(
-                                        val: exts.isEmpty ? null:"",
-                                        width: 100,
-                                        height: 15,
+                                  },
+                                  text: "Delete",
+                                )
+                              ],
+                            ));
+                      },
+                      child: Container(
+                        color: ThemeDt.themeColors["altbg"],
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    FutureWid(
+                                      val: exts.values.elementAtOrNull(i),
+                                      width: 100,
+                                      height: 15,
+                                      child: WidsManager().getText(
+                                          exts.values.elementAtOrNull(i) != null
+                                              ? exts.values
+                                                  .elementAtOrNull(i)["name"]
+                                              : "",
+                                          size: 15),
+                                    ),
+                                    const SizedBox(
+                                      width: 6,
+                                    ),
+                                    FutureWid(
+                                      val: exts.values.elementAtOrNull(i),
+                                      width: 20,
+                                      height: 10,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                            color: ThemeDt.themeColors["fg"]
+                                                ?.withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(7)),
+                                        padding: const EdgeInsets.all(3),
                                         child: WidsManager().getText(
-                                            exts.isNotEmpty?  exts.values.elementAt(i)["name"] :"",
-                                            size: 15),
+                                            exts.values.elementAtOrNull(i) !=
+                                                    null
+                                                ? exts.values
+                                                    .elementAtOrNull(i)["vers"]
+                                                : "N/A",
+                                            size: 10),
                                       ),
-                                      const SizedBox(
-                                        width: 6,
-                                      ),
-                                      FutureWid(
-                                        val: exts.isEmpty ? null:"",
-                                        width: 20,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 3,
+                                ),
+                                Opacity(
+                                  opacity: 0.7,
+                                  child: SizedBox(
+                                      width: (TabManager.isSuperLarge
+                                              ? 900.0
+                                              : MediaQuery.sizeOf(context)
+                                                      .width -
+                                                  ((TabManager.isLargeScreen)
+                                                      ? 170
+                                                      : 0)) /
+                                          2,
+                                      child: FutureWid(
+                                        val: exts.values.elementAtOrNull(i),
+                                        width: 150,
                                         height: 10,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                                color: ThemeDt.themeColors["fg"]
-                                                    ?.withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(7)),
-                                          padding: const EdgeInsets.all(3),
-                                          child: WidsManager().getText(
-                                                exts.isNotEmpty? exts.values.elementAt(i)["vers"]:"N/A",
-                                                size: 10),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 3,
-                                  ),
-                                  Opacity(
-                                    opacity: 0.7,
-                                    child: Container(
-                                        width: (TabManager.isSuperLarge?900.0:MediaQuery.sizeOf(context).width-((TabManager.isLargeScreen)?170:0)) / 2,
-                                        child: FutureWid(
-                                          val: exts.isEmpty ? null:"",
-                                          width: 150,
-                                          height: 10,
-                                          child: WidsManager().getText(
-                                             exts.isNotEmpty? exts.values.elementAt(i)["desc"]:"",
-                                              size: 10,
-                                              maxLines: 2),
-                                        )),
-                                  ),
-                                ],
-                              ),
-                              FutureWid(
-                                val: exts.isEmpty ? null:"",
-                                width: 40,
-                                height: 20,
-                                child: GetToggleButton(
-                                    value: exts.isNotEmpty ?  exts.values.elementAt(i)["enable"] :false,
-                                    onTap: () async {
-                                      setState(() {
-                                        exts[exts.keys.elementAt(i)]["enable"] = !exts[exts.keys.elementAt(i)]["enable"];
-                                      });
-                                      Shell().run("gnome-extensions ${exts[exts.keys.elementAt(i)]["enable"] ? "enable" : "disable"} ${exts.keys.elementAt(i)}");
-                                    }),
-                              )
-                            ],
-                          ).animate(effects: [const FadeEffect()]),
-                        ),
+                                        child: WidsManager().getText(
+                                            exts.values.elementAtOrNull(i) !=
+                                                    null
+                                                ? exts.values
+                                                    .elementAtOrNull(i)["desc"]
+                                                : "",
+                                            size: 10,
+                                            maxLines: 2),
+                                      )),
+                                ),
+                              ],
+                            ),
+                            FutureWid(
+                              val: exts.values.elementAtOrNull(i),
+                              width: 40,
+                              height: 20,
+                              child: GetToggleButton(
+                                  value: exts.values.elementAtOrNull(i) != null
+                                      ? exts.values.elementAtOrNull(i)["enable"]
+                                      : false,
+                                  onTap: () async {
+                                    setState(() {
+                                      exts[exts.keys.elementAt(i)]["enable"] =
+                                          !exts[exts.keys.elementAt(i)]
+                                              ["enable"];
+                                    });
+                                    Shell().run(
+                                        "gnome-extensions ${exts[exts.keys.elementAtOrNull(i)]["enable"] ? "enable" : "disable"} ${exts.keys.elementAt(i)}");
+                                  }),
+                            )
+                          ],
+                        ).animate(effects: [const FadeEffect()]),
                       ),
+                    ),
                 ]),
           ),
         ),
@@ -281,14 +331,15 @@ class ExtensionInfoPage extends StatefulWidget {
   final Map? m;
   final Map? jsonInfo;
   final String uuid;
-  const ExtensionInfoPage({super.key, this.m, required this.uuid, this.jsonInfo});
+  const ExtensionInfoPage(
+      {super.key, this.m, required this.uuid, this.jsonInfo});
 
   @override
   State<ExtensionInfoPage> createState() => _ExtensionInfoPageState();
 }
 
 class _ExtensionInfoPageState extends State<ExtensionInfoPage> {
-   Map m={};
+  Map m = {};
   @override
   void initState() {
     // TODO: implement initState
@@ -296,73 +347,80 @@ class _ExtensionInfoPageState extends State<ExtensionInfoPage> {
 
     super.initState();
   }
-bool incompatible=false;
-  fetchMapFromList() async { 
+
+  bool incompatible = false;
+  fetchMapFromList() async {
     try {
       Map jsonInfo;
       String h = (await Shell().run("gnome-shell --version"))
           .outText
           .replaceAll("GNOME Shell ", "");
       h = h.substring(0, h.lastIndexOf(".")).trim();
-        if(widget.jsonInfo==null){
+      if (widget.jsonInfo == null) {
         Directory("extensions").existsSync()
             ? Directory("extensions").delete(recursive: true)
             : Directory("extensions").create(recursive: true);
-      
+
         await Shell().run(
-            "wget -O info.json https://extensions.gnome.org/extension-info/?uuid=${widget.uuid}&shell_version=$h");
-        File info = File("./info.json");
+            "wget -O ${SystemInfo.home}/.NexData/cache/search/exts/info.json https://extensions.gnome.org/extension-info/?uuid=${widget.uuid}&shell_version=$h");
+        File info =
+            File("${SystemInfo.home}/.NexData/cache/search/exts/info.json");
         jsonInfo = jsonDecode(info.readAsStringSync());
-      }else{
-      jsonInfo=widget.jsonInfo!;
-        }
+      } else {
+        jsonInfo = widget.jsonInfo!;
+      }
       creator = jsonInfo["creator"];
-      icoLink=jsonInfo["icon"]==null ? "icon_3088_N9zsvc8.png":"https://extensions.gnome.org${jsonInfo["icon"]}";
-      
-      screenShot=jsonInfo["screenshot"]==null ? null:"https://extensions.gnome.org${jsonInfo["screenshot"]}";
-      name=jsonInfo["name"];
-      
-      if(jsonInfo["shell_version_map"][h]==null) {
+      icoLink = jsonInfo["icon"] == null
+          ? "icon_3088_N9zsvc8.png"
+          : "https://extensions.gnome.org${jsonInfo["icon"]}";
+
+      screenShot = jsonInfo["screenshot"] == null
+          ? null
+          : "https://extensions.gnome.org${jsonInfo["screenshot"]}";
+      name = jsonInfo["name"];
+
+      if (jsonInfo["shell_version_map"][h] == null) {
         incompatible = true;
       } else {
-        inst=jsonInfo["shell_version_map"][h]["version"].toString();
+        inst = jsonInfo["shell_version_map"][h]["version"].toString();
       }
-      String pre =(await Shell().run("gnome-extensions list")).outText;
-      if(pre.contains(widget.uuid)){
-       installable="installed";
-      }else{
-        installable="notinstalled";
+      String pre = (await Shell().run("gnome-extensions list")).outText;
+      if (pre.contains(widget.uuid)) {
+        installable = "installed";
+      } else {
+        installable = "notinstalled";
       }
-      desc=jsonInfo["description"];
+      desc = jsonInfo["description"];
       if (widget.m == null) {
-      
       } else {
         m = widget.m!;
         name = m["name"];
         inst = m["vers"];
-      
-        if(m["enable"]!=null)installable="installed";
+
+        if (m["enable"] != null) installable = "installed";
       }
-      
+
       setState(() {});
-    }  catch (e) {
+    } catch (e) {
       setState(() {
-        err=true;
-        errCode=e.toString();
+        err = true;
+        errCode = e.toString();
       });
       // TODO
     }
   }
-  bool err=false;
-  String errCode="";
-String? icoLink;
+
+  bool err = false;
+  String errCode = "";
+  String? icoLink;
   fetchVal(h, val) {
     return h
         .substring(h.indexOf("$val:") + "$val:".length,
             h.indexOf("\n", h.indexOf("$val:") + "$val:".length))
         .trim();
   }
-String? installable;
+
+  String? installable;
   String? desc;
   String? screenShot;
   String? creator;
@@ -372,231 +430,294 @@ String? installable;
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WidsManager().gtkAppBar(context),
-      body: err?Center(
-        child: Container(
-            width: 500,
-            child: WidsManager().getText("There was an error while loading this page.\n\n$errCode")),
-      ):Column(
-        children: [
-         if(MediaQuery.sizeOf(context).width>600) const SizedBox(
-            height: 30,
-          ),
-          AnimatedPadding(
-            padding:  EdgeInsets.all((MediaQuery.sizeOf(context).width<500)?20:60),
-            duration: ThemeDt.d,
-            curve: ThemeDt.c,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: err
+          ? Center(
+              child: SizedBox(
+                  width: 500,
+                  child: WidsManager().getText(
+                      "There was an error while loading this page.\n\n$errCode")),
+            )
+          : Column(
               children: [
-                Flex(
-                 // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  direction: (MediaQuery.sizeOf(context).width<600)?Axis.vertical:Axis.horizontal,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            FutureWid(
-                              val: icoLink,
-                              width: 30,
-                              height: 30,
-                              child:(icoLink??"icon_3088_N9zsvc8.pngplugin").contains("icon_3088_N9zsvc8.png")||(icoLink??"icon_3088_N9zsvc8.pngplugin").contains("plugin")? Icon(
-                                Icons.extension,
-                                color: ThemeDt.themeColors["altfg"],
-                              ):Image.network(
-                                  height: 30,
-                                  icoLink ?? ""),
-                            ),
-                            const SizedBox(width: 6,),
-
-                            FutureWid(val: name,
-                            width: 150,
-                            height: 30,
-                            child: Container(
-                                width: MediaQuery.sizeOf(context).width<(name ?? "N/A").length*30?200:null,
-                                child: WidsManager().getText(name ?? "N/A", size: MediaQuery.sizeOf(context).width<600?18:24))),
-                            const SizedBox(width: 6,),
-                            FutureWid(
-                              val: inst,
-                              width: 20,
-                              height: 30,
-                              child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(7),
-                                    color:
-                                        ThemeDt.themeColors["fg"]?.withOpacity(0.1),
-                                  ),
-                                  child: WidsManager().getText(inst ?? "N/A", size: 12)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        FutureWid(
-                          val: creator,
-                          width: 100,
-                          height: 10,
-                          child: WidsManager().getText(creator??"N/A", size: 13), 
-                        ),
-                        const SizedBox(
-                          height: 5,
-                        ),
-                        FutureWid(
-                          val:  desc,
-                          width: 100,
-                          height: 10,
-                          child: GestureDetector(
-                            onTap: (){
-                              WidsManager().showMessage(
-                                isDismisible: true,
-                                  height: MediaQuery.sizeOf(context).height/1.2,
-                                  title: "Info", message: (desc ?? "N/A"), context: context);
-                            },
-                            child: Container(
-                              color: ThemeDt.themeColors["bg"],
-                                width: MediaQuery.sizeOf(context).width / 2,
-                                child: WidsManager().getText(
-                                    maxLines: 2,
-                                    (desc ?? "N/A").replaceAll("\n", " "), size: 11)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 18.0),
-                      child: Row(
+                if (MediaQuery.sizeOf(context).width > 600)
+                  const SizedBox(
+                    height: 30,
+                  ),
+                AnimatedPadding(
+                  padding: EdgeInsets.all(
+                      (MediaQuery.sizeOf(context).width < 500) ? 20 : 60),
+                  duration: ThemeDt.d,
+                  curve: ThemeDt.c,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flex(
+                        // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        direction: (MediaQuery.sizeOf(context).width < 600)
+                            ? Axis.vertical
+                            : Axis.horizontal,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          FutureWid(
-                            val: installable,
-                            width: 100,
-                            height: 30,
-                            child: incompatible? Container(
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(100)
-                              ),
-                              padding: const EdgeInsets.all(10),
-                              child: Row(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Icon(Icons.error, color: ThemeDt.themeColors["fg"],),
-                                  WidsManager().getText(" Incompatible"),
+                                  FutureWid(
+                                    val: icoLink,
+                                    width: 30,
+                                    height: 30,
+                                    child: (icoLink ??
+                                                    "icon_3088_N9zsvc8.pngplugin")
+                                                .contains(
+                                                    "icon_3088_N9zsvc8.png") ||
+                                            (icoLink ??
+                                                    "icon_3088_N9zsvc8.pngplugin")
+                                                .contains("plugin")
+                                        ? Icon(
+                                            Icons.extension,
+                                            color: ThemeDt.themeColors["altfg"],
+                                          )
+                                        : Image.network(
+                                            height: 30, icoLink ?? ""),
+                                  ),
+                                  const SizedBox(
+                                    width: 6,
+                                  ),
+                                  FutureWid(
+                                      val: name,
+                                      width: 150,
+                                      height: 30,
+                                      child: SizedBox(
+                                          width: MediaQuery.sizeOf(context)
+                                                      .width <
+                                                  (name ?? "N/A").length * 30
+                                              ? 200
+                                              : null,
+                                          child: WidsManager().getText(
+                                              name ?? "N/A",
+                                              size: MediaQuery.sizeOf(context)
+                                                          .width <
+                                                      600
+                                                  ? 18
+                                                  : 24))),
+                                  const SizedBox(
+                                    width: 6,
+                                  ),
+                                  FutureWid(
+                                    val: inst,
+                                    width: 20,
+                                    height: 30,
+                                    child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          color: ThemeDt.themeColors["fg"]
+                                              ?.withOpacity(0.1),
+                                        ),
+                                        child: WidsManager()
+                                            .getText(inst ?? "N/A", size: 12)),
+                                  ),
                                 ],
                               ),
-                            ):
-                            (installable ?? "") == "installed"? Row(
-                              children: [
-                                ElevatedButton.icon(
-                                    onPressed: () async {
-                                      setState(() {
-                                        installable=null;
-                                      });
-                                      try {
-                                        await Shell().run("gnome-extensions uninstall ${widget.uuid}");
-                                        setState(() {
-                                          installable = "notinstalled";
-                                        });
-                                      }catch(e){
-                                        setState(() {
-                                          installable = "installed";
-                                        });
-                                      }
-                                    },
-                                    icon: Icon(
-
-                                      Icons.delete,
-                                      color: ThemeDt.themeColors["altfg"],
-                                    ),
-                                    label: WidsManager().getText("Uninstall")),
-                                const SizedBox(
-                                  width: 10,
-                                ),
-                                IconButton(
-                                  onPressed: () async {
-
-                                    try {
-                                      await Shell().run("gnome-extensions prefs ${widget.uuid}");
-                                    }  catch (e) {
-                                      WidsManager().showMessage(title: "info", message: e.toString(), context: context);
-                                    }
-
-
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              FutureWid(
+                                val: creator,
+                                width: 100,
+                                height: 10,
+                                child: WidsManager()
+                                    .getText(creator ?? "N/A", size: 13),
+                              ),
+                              const SizedBox(
+                                height: 5,
+                              ),
+                              FutureWid(
+                                val: desc,
+                                width: 100,
+                                height: 10,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    WidsManager().showMessage(
+                                        isDismisible: true,
+                                        height:
+                                            MediaQuery.sizeOf(context).height /
+                                                1.2,
+                                        title: "Info",
+                                        message: (desc ?? "N/A"),
+                                        context: context);
                                   },
-                                  icon: Icon(
-                                    Icons.settings,
-                                    color: ThemeDt.themeColors["altfg"],
-                                  ),
-                                )
-                              ],
-                            ):ElevatedButton.icon(
-                                onPressed: () async {
-                                  setState(() {
-                                    installable=null;
-                                  });
-                                  try {
-                                    String? s =await ThemeManager().extensionInstaller(uuid: widget.uuid);
-                                    if((s ?? "cancelled").contains("cancelled")){
-                                      setState(() {
-                                        installable = "notinstalled";
-                                      });
-                                    }
-                                   else {
-                                      setState(() {
-                                        installable = "installed";
-                                      });
-                                    }
-                                  }catch(e){
-                                    setState(() {
-                                      installable = "notinstalled";
-                                    });
-                                  }
-                                },
-                                icon: Icon(
-
-                                  Icons.install_desktop,
-                                  color: ThemeDt.themeColors["altfg"],
+                                  child: Container(
+                                      color: ThemeDt.themeColors["bg"],
+                                      width:
+                                          MediaQuery.sizeOf(context).width / 2,
+                                      child: WidsManager().getText(
+                                          maxLines: 2,
+                                          (desc ?? "N/A").replaceAll("\n", " "),
+                                          size: 11)),
                                 ),
-                                label: WidsManager().getText("Install")),
+                              ),
+                            ],
                           ),
-
+                          Padding(
+                            padding: const EdgeInsets.only(top: 18.0),
+                            child: Row(
+                              children: [
+                                FutureWid(
+                                  val: installable,
+                                  width: 100,
+                                  height: 30,
+                                  child: incompatible
+                                      ? Container(
+                                          decoration: BoxDecoration(
+                                              color:
+                                                  Colors.red.withOpacity(0.7),
+                                              borderRadius:
+                                                  BorderRadius.circular(100)),
+                                          padding: const EdgeInsets.all(10),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.error,
+                                                color:
+                                                    ThemeDt.themeColors["fg"],
+                                              ),
+                                              WidsManager()
+                                                  .getText(" Incompatible"),
+                                            ],
+                                          ),
+                                        )
+                                      : (installable ?? "") == "installed"
+                                          ? Row(
+                                              children: [
+                                                ElevatedButton.icon(
+                                                    onPressed: () async {
+                                                      setState(() {
+                                                        installable = null;
+                                                      });
+                                                      try {
+                                                        await Shell().run(
+                                                            "gnome-extensions uninstall ${widget.uuid}");
+                                                        setState(() {
+                                                          installable =
+                                                              "notinstalled";
+                                                        });
+                                                      } catch (e) {
+                                                        setState(() {
+                                                          installable =
+                                                              "installed";
+                                                        });
+                                                      }
+                                                    },
+                                                    icon: Icon(
+                                                      Icons.delete,
+                                                      color: ThemeDt
+                                                          .themeColors["altfg"],
+                                                    ),
+                                                    label: WidsManager()
+                                                        .getText("Uninstall")),
+                                                const SizedBox(
+                                                  width: 10,
+                                                ),
+                                                IconButton(
+                                                  onPressed: () async {
+                                                    try {
+                                                      await Shell().run(
+                                                          "gnome-extensions prefs ${widget.uuid}");
+                                                    } catch (e) {
+                                                      WidsManager().showMessage(
+                                                          title: "info",
+                                                          message: e.toString(),
+                                                          context: context);
+                                                    }
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.settings,
+                                                    color: ThemeDt
+                                                        .themeColors["altfg"],
+                                                  ),
+                                                )
+                                              ],
+                                            )
+                                          : ElevatedButton.icon(
+                                              onPressed: () async {
+                                                setState(() {
+                                                  installable = null;
+                                                });
+                                                try {
+                                                  String? s =
+                                                      await ThemeManager()
+                                                          .extensionInstaller(
+                                                              uuid:
+                                                                  widget.uuid);
+                                                  if ((s ?? "cancelled")
+                                                      .contains("cancelled")) {
+                                                    setState(() {
+                                                      installable =
+                                                          "notinstalled";
+                                                    });
+                                                  } else {
+                                                    setState(() {
+                                                      installable = "installed";
+                                                    });
+                                                  }
+                                                } catch (e) {
+                                                  setState(() {
+                                                    installable =
+                                                        "notinstalled";
+                                                  });
+                                                }
+                                              },
+                                              icon: Icon(
+                                                Icons.install_desktop,
+                                                color: ThemeDt
+                                                    .themeColors["altfg"],
+                                              ),
+                                              label: WidsManager()
+                                                  .getText("Install")),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 3,
-                ),
-
-                const SizedBox(height: 20,),
-               if(screenShot!=null) ClipRRect(
-                 borderRadius: BorderRadius.circular(8),
-                 child: Image.network(
-                     loadingBuilder: (BuildContext context, Widget child,
-                         ImageChunkEvent? loadingProgress) {
-                       if (loadingProgress == null) return child;
-                       return Center(
-                         child: Padding(
-                           padding: const EdgeInsets.only(top: 200.0),
-                           child: LinearProgressIndicator(
-                             value: (loadingProgress.cumulativeBytesLoaded/(loadingProgress.expectedTotalBytes ?? 1)),
-                             color: Colors.white,
-                           ),
-                         ),
-                       );
-                     },
-                     height: MediaQuery.sizeOf(context).height/2,
-                     fit: BoxFit.fitWidth,
-                     screenShot!),
-               )
+                      const SizedBox(
+                        height: 3,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      if (screenShot != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(loadingBuilder:
+                                  (BuildContext context, Widget child,
+                                      ImageChunkEvent? loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 200.0),
+                                child: LinearProgressIndicator(
+                                  value:
+                                      (loadingProgress.cumulativeBytesLoaded /
+                                          (loadingProgress.expectedTotalBytes ??
+                                              1)),
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                              height: MediaQuery.sizeOf(context).height / 2,
+                              fit: BoxFit.fitWidth,
+                              screenShot!),
+                        )
+                    ],
+                  ),
+                )
               ],
             ),
-          )
-        ],
-      ),
     );
   }
 }

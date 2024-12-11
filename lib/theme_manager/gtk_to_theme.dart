@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:gtkthememanager/back_end/gtk_theme_manager.dart';
+import '../back_end/gtk_theme_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:process_run/process_run.dart';
 import 'gtk_widgets.dart';
@@ -200,16 +200,16 @@ gsettings set org.gnome.desktop.interface gtk-theme $name
     String home=colonedTheme.split(":").last;
     String pathToTheme=colonedTheme.split(":").first;
     try {
-      Directory dir = Directory("${home}/.config/gtk-4.0");
+      Directory dir = Directory("$home/.config/gtk-4.0");
       if(await dir.exists()){
         await dir.delete(recursive: true);
       }
       if(pathToTheme=="default")return;
 
       await Shell().run("""
-      cp -r $pathToTheme/gtk-4.0 ${home}/.config
+      cp -r $pathToTheme/gtk-4.0 $home/.config
       """);
-      File fl = File("${home}/.config/gtk-4.0/theme-info.json");
+      File fl = File("$home/.config/gtk-4.0/theme-info.json");
       Map m ={"THEME_NAME":pathToTheme.split("/").last.replaceAll("/", "")};
       if(await fl.exists() == false){
         await fl.create();
@@ -516,8 +516,8 @@ isSensitive: true,
             try{
               Directory dir = Directory(globalAppliedTheme);
               String run ="""
-bash -c "echo \"$txt\" | sudo -S flatpak override --filesystem=$globalAppliedTheme"
-bash -c "echo \"$txt\" | sudo -S flatpak override --env=GTK_THEME=${dir.path.split("/").last}"
+bash -c "echo "$txt" | sudo -S flatpak override --filesystem=$globalAppliedTheme"
+bash -c "echo "$txt" | sudo -S flatpak override --env=GTK_THEME=${dir.path.split("/").last}"
               """;
              await Shell().run(run);
               run ="""

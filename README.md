@@ -1,4 +1,4 @@
-# Evolve
+# Evolve Core
 
 The powerful and modern alternative to Gnome Tweaks with GTK-4.0 support and some cool features
 

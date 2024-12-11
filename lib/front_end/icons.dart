@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:gtkthememanager/theme_manager/tab_manage.dart';
+import '../theme_manager/tab_manage.dart';
 import '../back_end/gtk_theme_manager.dart';
 import '../theme_manager/gtk_to_theme.dart';
 import '../theme_manager/gtk_widgets.dart';
